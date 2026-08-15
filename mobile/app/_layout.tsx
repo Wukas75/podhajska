@@ -5,9 +5,11 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { queryClient } from '../lib/queryClient';
 import { useSession } from '../hooks/useSession';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 function RootNavigator() {
   const { session, isLoading } = useSession();
+  usePushNotifications(session);
 
   if (isLoading) {
     return <View style={{ flex: 1 }} />;
