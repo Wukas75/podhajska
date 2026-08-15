@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCreateTank, useTanks } from '../../hooks/useTanks';
 import type { Tank } from '../../types/database.types';
 
 export default function TanksScreen() {
-  const { data: tanks, isLoading, error } = useTanks();
+  const { data: tanks, isLoading, error, refetch, isRefetching } = useTanks();
   const createTank = useCreateTank();
   const [name, setName] = useState('');
   const [capacity, setCapacity] = useState('');
@@ -45,6 +45,7 @@ export default function TanksScreen() {
           data={tanks ?? []}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingTop: 8 }}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           renderItem={({ item }: { item: Tank }) => (
             <View style={styles.tankRow}>
               <Text style={styles.tankName}>{item.name}</Text>

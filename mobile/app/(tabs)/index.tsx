@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { useBatches } from '../../hooks/useBatches';
@@ -8,11 +8,12 @@ import { BatchCard } from '../../components/BatchCard';
 import { StepCard } from '../../components/StepCard';
 
 export default function DashboardScreen() {
-  const { data: batches, isLoading: isBatchesLoading } = useBatches();
-  const { data: steps, isLoading: isStepsLoading } = useDashboardSteps();
+  const { data: batches, isLoading: isBatchesLoading, refetch: refetchBatches, isRefetching: isRefetchingBatches } = useBatches();
+  const { data: steps, isLoading: isStepsLoading, refetch: refetchSteps, isRefetching: isRefetchingSteps } = useDashboardSteps();
   useRealtimeBatchSteps();
 
   const isLoading = isBatchesLoading || isStepsLoading;
+  const isRefetching = isRefetchingBatches || isRefetchingSteps;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -31,6 +32,15 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.list}
         data={steps ?? []}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              refetchBatches();
+              refetchSteps();
+            }}
+          />
+        }
         ListHeaderComponent={
           <>
             <Text style={styles.sectionTitle}>Aktívne šarže</Text>

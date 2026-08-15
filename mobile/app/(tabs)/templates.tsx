@@ -1,11 +1,11 @@
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import { useTemplates } from '../../hooks/useTemplates';
 import type { RecipeTemplate } from '../../types/database.types';
 
 export default function TemplatesScreen() {
-  const { data: templates, isLoading, error } = useTemplates();
+  const { data: templates, isLoading, error, refetch, isRefetching } = useTemplates();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -25,6 +25,7 @@ export default function TemplatesScreen() {
         <FlatList
           data={templates ?? []}
           keyExtractor={(item) => item.id}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           renderItem={({ item }: { item: RecipeTemplate }) => (
             <Link href={{ pathname: '/templates/[id]', params: { id: item.id } }} asChild>
               <Pressable style={styles.row}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useBatch } from '../../hooks/useBatches';
@@ -10,8 +10,8 @@ import { RecordValueModal } from '../../components/RecordValueModal';
 
 export default function BatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: batch, isLoading: isBatchLoading } = useBatch(id);
-  const { data: steps, isLoading: isStepsLoading, error } = useBatchSteps(id);
+  const { data: batch, isLoading: isBatchLoading, refetch: refetchBatch } = useBatch(id);
+  const { data: steps, isLoading: isStepsLoading, error, refetch: refetchSteps, isRefetching } = useBatchSteps(id);
   const markDone = useMarkStepDone(id);
   const skipStep = useSkipStep(id);
   const [activeStepId, setActiveStepId] = useState<string | null>(null);
@@ -37,6 +37,15 @@ export default function BatchDetailScreen() {
         <FlatList
           data={steps ?? []}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => {
+                refetchBatch();
+                refetchSteps();
+              }}
+            />
+          }
           renderItem={({ item }) =>
             activeStepId === item.id ? (
               <RecordValueModal
