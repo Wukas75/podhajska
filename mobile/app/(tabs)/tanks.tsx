@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
   form: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   input: {
     flex: 1,
+    minWidth: 0,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,

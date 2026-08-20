@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
   instruction: { fontSize: 13, color: '#666', marginBottom: 10 },
   row: { flexDirection: 'row', gap: 8 },
-  small: { flex: 1 },
+  small: { flex: 1, minWidth: 0 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',

@@ -14,6 +14,10 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
   if (!Device.isDevice) {
     console.warn('Push notifikácie vyžadujú fyzické zariadenie.');
     return null;

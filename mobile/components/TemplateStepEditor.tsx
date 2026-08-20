@@ -110,7 +110,7 @@ export function TemplateStepEditor({ initial, submitLabel, onSubmit, onCancel, i
 const styles = StyleSheet.create({
   container: { backgroundColor: '#f7f7f7', borderRadius: 10, padding: 14, marginBottom: 16 },
   row: { flexDirection: 'row', gap: 8 },
-  small: { flex: 1 },
+  small: { flex: 1, minWidth: 0 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',

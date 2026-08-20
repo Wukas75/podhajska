@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import type { Session } from '@supabase/supabase-js';
@@ -18,6 +19,8 @@ export function usePushNotifications(session: Session | null) {
   }, [session?.user.id]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       goToBatchFromNotification(response.notification.request.content.data);
     });
