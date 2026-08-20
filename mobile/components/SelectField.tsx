@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, Pressable, Modal, FlatList, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type SelectOption = { id: string; label: string; sublabel?: string | null };
 
@@ -14,6 +15,7 @@ type Props = {
 
 export function SelectField({ label, placeholder, emptyHint, options, selectedId, onSelect }: Props) {
   const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const selected = options.find((o) => o.id === selectedId);
 
   return (
@@ -28,7 +30,7 @@ export function SelectField({ label, placeholder, emptyHint, options, selectedId
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 12 }]}>
             <Text style={styles.modalTitle}>{label}</Text>
             <FlatList
               data={options}
@@ -69,7 +71,7 @@ const styles = StyleSheet.create({
   selectPlaceholder: { fontSize: 15, color: '#999' },
   selectChevron: { fontSize: 14, color: '#999' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%', paddingBottom: 12 },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%' },
   modalTitle: { fontSize: 16, fontWeight: '700', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   modalOption: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f2f2f2' },
   modalOptionActive: { backgroundColor: '#f7f7f7' },
