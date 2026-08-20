@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ActivityIndicat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { format, parseISO } from 'date-fns';
 import {
   useBrewSheet,
   useUpdateBrewSheet,
@@ -13,7 +14,7 @@ import {
   type BrewSheetIngredientWithDetails,
 } from '../../hooks/useBrewSheets';
 import { useIngredients } from '../../hooks/useIngredients';
-import { RecipeIngredientEditor } from '../../components/RecipeIngredientEditor';
+import { BrewSheetIngredientEditor } from '../../components/BrewSheetIngredientEditor';
 import type { IngredientCategory } from '../../types/database.types';
 
 const CATEGORY_LABELS: Record<IngredientCategory, string> = {
@@ -36,11 +37,14 @@ export default function BrewSheetDetailScreen() {
   const [isEditingSheet, setIsEditingSheet] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [volumeDraft, setVolumeDraft] = useState('');
+  const [batchNumberDraft, setBatchNumberDraft] = useState('');
+  const [brewDateDraft, setBrewDateDraft] = useState('');
   const [notesDraft, setNotesDraft] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
 
   const sheetIngredients = data?.ingredients ?? [];
+  const totalPriceSum = sheetIngredients.reduce((sum, it) => sum + (it.total_price ?? 0), 0);
 
   const ingredientOptions = (ingredients ?? []).map((i) => ({
     id: i.id,
@@ -52,6 +56,8 @@ export default function BrewSheetDetailScreen() {
     if (!data) return;
     setNameDraft(data.sheet.name);
     setVolumeDraft(String(data.sheet.batch_volume_liters));
+    setBatchNumberDraft(String(data.sheet.batch_number));
+    setBrewDateDraft(data.sheet.brew_date);
     setNotesDraft(data.sheet.notes ?? '');
     setIsEditingSheet(true);
   }
@@ -59,14 +65,22 @@ export default function BrewSheetDetailScreen() {
   function saveSheet() {
     if (!data) return;
     const volume = Number(volumeDraft);
+    const batchNumber = Number(batchNumberDraft);
     if (!nameDraft.trim() || !volumeDraft.trim() || volume <= 0) return;
+    if (!batchNumberDraft.trim() || batchNumber <= 0 || !brewDateDraft.trim()) return;
 
     const previousVolume = data.sheet.batch_volume_liters;
     const scale = volume / previousVolume;
 
-    function saveVolumeAndNotes() {
+    function saveRest() {
       updateSheet.mutate(
-        { name: nameDraft.trim(), batchVolumeLiters: volume, notes: notesDraft.trim() || null },
+        {
+          name: nameDraft.trim(),
+          batchVolumeLiters: volume,
+          batchNumber,
+          brewDate: brewDateDraft.trim(),
+          notes: notesDraft.trim() || null,
+        },
         { onSuccess: () => setIsEditingSheet(false) }
       );
     }
@@ -74,10 +88,10 @@ export default function BrewSheetDetailScreen() {
     if (scale !== 1 && sheetIngredients.length > 0) {
       scaleIngredients.mutate(
         sheetIngredients.map((si) => ({ id: si.id, quantity: Math.round(si.quantity * scale * 1000) / 1000 })),
-        { onSuccess: saveVolumeAndNotes }
+        { onSuccess: saveRest }
       );
     } else {
-      saveVolumeAndNotes();
+      saveRest();
     }
   }
 
@@ -93,6 +107,18 @@ export default function BrewSheetDetailScreen() {
             {isEditingSheet ? (
               <View style={styles.sheetEditForm}>
                 <TextInput style={styles.input} placeholder="Názov" value={nameDraft} onChangeText={setNameDraft} />
+
+                <View style={styles.row}>
+                  <View style={styles.col}>
+                    <Text style={styles.label}>Poradové číslo várky</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={batchNumberDraft} onChangeText={setBatchNumberDraft} />
+                  </View>
+                  <View style={styles.col}>
+                    <Text style={styles.label}>Dátum várky</Text>
+                    <TextInput style={styles.input} value={brewDateDraft} onChangeText={setBrewDateDraft} placeholder="RRRR-MM-DD" />
+                  </View>
+                </View>
+
                 <Text style={styles.label}>Objem várky (litre)</Text>
                 <TextInput
                   style={styles.input}
@@ -101,7 +127,7 @@ export default function BrewSheetDetailScreen() {
                   onChangeText={setVolumeDraft}
                   placeholder="1000"
                 />
-                {data && sheetIngredients.length > 0 && Number(volumeDraft) !== data.sheet.batch_volume_liters && (
+                {sheetIngredients.length > 0 && Number(volumeDraft) !== data.sheet.batch_volume_liters && (
                   <Text style={styles.hint}>Množstvo surovín sa prepočíta pomerne k novému objemu.</Text>
                 )}
                 <TextInput
@@ -132,7 +158,10 @@ export default function BrewSheetDetailScreen() {
             ) : (
               <View style={styles.sheetHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.volume}>Objem várky: {data.sheet.batch_volume_liters} l</Text>
+                  <Text style={styles.batchNumber}>Várka #{data.sheet.batch_number}</Text>
+                  <Text style={styles.volume}>
+                    {format(parseISO(data.sheet.brew_date), 'd.M.yyyy')} · {data.sheet.batch_volume_liters} l
+                  </Text>
                   {data.sheet.notes ? <Text style={styles.description}>{data.sheet.notes}</Text> : null}
                 </View>
                 <Pressable onPress={startEditingSheet} hitSlop={8} accessibilityLabel="Upraviť varný list">
@@ -148,15 +177,15 @@ export default function BrewSheetDetailScreen() {
               ListHeaderComponent={<Text style={styles.sectionTitle}>Suroviny</Text>}
               renderItem={({ item }: { item: BrewSheetIngredientWithDetails }) =>
                 editingIngredientId === item.id ? (
-                  <RecipeIngredientEditor
-                    initial={{ ingredientId: item.ingredient_id, quantity: item.quantity }}
+                  <BrewSheetIngredientEditor
+                    initial={{ ingredientId: item.ingredient_id, quantity: item.quantity, totalPrice: item.total_price }}
                     ingredientOptions={ingredientOptions}
                     submitLabel="Uložiť"
                     isSubmitting={updateIngredient.isPending}
                     onCancel={() => setEditingIngredientId(null)}
                     onSubmit={(input) => {
                       updateIngredient.mutate(
-                        { id: item.id, ingredientId: input.ingredientId, quantity: input.quantity },
+                        { id: item.id, ingredientId: input.ingredientId, quantity: input.quantity, totalPrice: input.totalPrice },
                         { onSuccess: () => setEditingIngredientId(null) }
                       );
                     }}
@@ -167,6 +196,7 @@ export default function BrewSheetDetailScreen() {
                       <Text style={styles.ingredientName}>{item.ingredient?.name ?? '—'}</Text>
                       <Text style={styles.ingredientQty}>
                         {item.quantity} {item.ingredient?.unit ?? ''}
+                        {item.total_price != null ? ` · ${item.total_price.toFixed(2)} €` : ''}
                       </Text>
                     </View>
                     <Pressable onPress={() => setEditingIngredientId(item.id)} hitSlop={8} accessibilityLabel="Upraviť surovinu">
@@ -180,21 +210,24 @@ export default function BrewSheetDetailScreen() {
               }
               ListEmptyComponent={<Text style={styles.empty}>Zatiaľ žiadne suroviny.</Text>}
               ListFooterComponent={
-                isAdding ? (
-                  <RecipeIngredientEditor
-                    ingredientOptions={ingredientOptions}
-                    submitLabel="Pridať surovinu"
-                    isSubmitting={addIngredient.isPending}
-                    onCancel={() => setIsAdding(false)}
-                    onSubmit={(input) => {
-                      addIngredient.mutate(input, { onSuccess: () => setIsAdding(false) });
-                    }}
-                  />
-                ) : (
-                  <Pressable style={styles.addButton} onPress={() => setIsAdding(true)}>
-                    <Text style={styles.addButtonText}>+ Pridať surovinu</Text>
-                  </Pressable>
-                )
+                <>
+                  {totalPriceSum > 0 && <Text style={styles.totalSum}>Spolu za suroviny: {totalPriceSum.toFixed(2)} €</Text>}
+                  {isAdding ? (
+                    <BrewSheetIngredientEditor
+                      ingredientOptions={ingredientOptions}
+                      submitLabel="Pridať surovinu"
+                      isSubmitting={addIngredient.isPending}
+                      onCancel={() => setIsAdding(false)}
+                      onSubmit={(input) => {
+                        addIngredient.mutate(input, { onSuccess: () => setIsAdding(false) });
+                      }}
+                    />
+                  ) : (
+                    <Pressable style={styles.addButton} onPress={() => setIsAdding(true)}>
+                      <Text style={styles.addButtonText}>+ Pridať surovinu</Text>
+                    </Pressable>
+                  )}
+                </>
               }
             />
           </>
@@ -208,6 +241,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { flex: 1, padding: 20 },
   sheetHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
+  batchNumber: { fontSize: 18, fontWeight: '700', marginBottom: 2 },
   volume: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 4 },
   description: { fontSize: 14, color: '#888' },
   sheetEditForm: { marginBottom: 16 },
@@ -219,6 +253,8 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.5 },
   label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 8, marginTop: 4, textTransform: 'uppercase' },
   hint: { color: '#999', fontSize: 13, fontStyle: 'italic', marginTop: -6, marginBottom: 10 },
+  row: { flexDirection: 'row', gap: 8 },
+  col: { flex: 1, minWidth: 0 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -244,6 +280,7 @@ const styles = StyleSheet.create({
   ingredientName: { fontSize: 16, fontWeight: '500' },
   ingredientQty: { fontSize: 13, color: '#666', marginTop: 2 },
   empty: { color: '#999', marginTop: 12, marginBottom: 12, textAlign: 'center' },
+  totalSum: { fontSize: 15, fontWeight: '700', textAlign: 'right', marginTop: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#eee' },
   addButton: { paddingVertical: 14, alignItems: 'center' },
   addButtonText: { color: '#1a1a1a', fontWeight: '600' },
 });

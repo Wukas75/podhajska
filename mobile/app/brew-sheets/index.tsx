@@ -1,6 +1,7 @@
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, Stack } from 'expo-router';
+import { format, parseISO } from 'date-fns';
 import { useBrewSheets } from '../../hooks/useBrewSheets';
 import type { BrewSheet } from '../../types/database.types';
 
@@ -30,8 +31,12 @@ export default function BrewSheetsScreen() {
           renderItem={({ item }: { item: BrewSheet }) => (
             <Link href={{ pathname: '/brew-sheets/[id]', params: { id: item.id } }} asChild>
               <Pressable style={styles.row}>
-                <Text style={styles.rowTitle}>{item.name}</Text>
-                <Text style={styles.rowSubtitle}>{item.batch_volume_liters} l</Text>
+                <Text style={styles.rowTitle}>
+                  #{item.batch_number} · {item.name}
+                </Text>
+                <Text style={styles.rowSubtitle}>
+                  {format(parseISO(item.brew_date), 'd.M.yyyy')} · {item.batch_volume_liters} l
+                </Text>
               </Pressable>
             </Link>
           )}

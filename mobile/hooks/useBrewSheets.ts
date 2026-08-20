@@ -6,9 +6,24 @@ export function useBrewSheets() {
   return useQuery({
     queryKey: ['brewSheets'],
     queryFn: async (): Promise<BrewSheet[]> => {
-      const { data, error } = await supabase.from('brew_sheets').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('brew_sheets').select('*').order('batch_number', { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export function useNextBrewSheetBatchNumber() {
+  return useQuery({
+    queryKey: ['brewSheets', 'nextBatchNumber'],
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('brew_sheets')
+        .select('batch_number')
+        .order('batch_number', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data[0]?.batch_number ?? 0) + 1;
     },
   });
 }
@@ -39,7 +54,13 @@ export function useBrewSheet(brewSheetId: string | undefined) {
 export function useCreateBrewSheet() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; batchVolumeLiters: number; notes: string | null }) => {
+    mutationFn: async (input: {
+      name: string;
+      batchVolumeLiters: number;
+      batchNumber: number;
+      brewDate: string;
+      notes: string | null;
+    }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -49,6 +70,8 @@ export function useCreateBrewSheet() {
           name: input.name,
           recipe_id: null,
           batch_volume_liters: input.batchVolumeLiters,
+          batch_number: input.batchNumber,
+          brew_date: input.brewDate,
           notes: input.notes,
           created_by: user?.id ?? null,
         })
@@ -66,11 +89,19 @@ export function useCreateBrewSheet() {
 export function useCreateBrewSheetFromRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; recipeId: string; batchVolumeLiters: number }) => {
+    mutationFn: async (input: {
+      name: string;
+      recipeId: string;
+      batchVolumeLiters: number;
+      batchNumber: number;
+      brewDate: string;
+    }) => {
       const { data, error } = await supabase.rpc('create_brew_sheet_from_recipe', {
         p_name: input.name,
         p_recipe_id: input.recipeId,
         p_batch_volume_liters: input.batchVolumeLiters,
+        p_batch_number: input.batchNumber,
+        p_brew_date: input.brewDate,
       });
       if (error) throw error;
       return data as string;
@@ -84,10 +115,22 @@ export function useCreateBrewSheetFromRecipe() {
 export function useUpdateBrewSheet(brewSheetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (patch: { name: string; batchVolumeLiters: number; notes: string | null }) => {
+    mutationFn: async (patch: {
+      name: string;
+      batchVolumeLiters: number;
+      batchNumber: number;
+      brewDate: string;
+      notes: string | null;
+    }) => {
       const { error } = await supabase
         .from('brew_sheets')
-        .update({ name: patch.name, batch_volume_liters: patch.batchVolumeLiters, notes: patch.notes })
+        .update({
+          name: patch.name,
+          batch_volume_liters: patch.batchVolumeLiters,
+          batch_number: patch.batchNumber,
+          brew_date: patch.brewDate,
+          notes: patch.notes,
+        })
         .eq('id', brewSheetId);
       if (error) throw error;
     },
@@ -117,10 +160,14 @@ export function useScaleBrewSheetIngredients(brewSheetId: string) {
 export function useAddBrewSheetIngredient(brewSheetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { ingredientId: string; quantity: number; notes?: string | null }) => {
-      const { error } = await supabase
-        .from('brew_sheet_ingredients')
-        .insert({ brew_sheet_id: brewSheetId, ingredient_id: input.ingredientId, quantity: input.quantity, notes: input.notes ?? null });
+    mutationFn: async (input: { ingredientId: string; quantity: number; totalPrice?: number | null; notes?: string | null }) => {
+      const { error } = await supabase.from('brew_sheet_ingredients').insert({
+        brew_sheet_id: brewSheetId,
+        ingredient_id: input.ingredientId,
+        quantity: input.quantity,
+        total_price: input.totalPrice ?? null,
+        notes: input.notes ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -132,10 +179,19 @@ export function useAddBrewSheetIngredient(brewSheetId: string) {
 export function useUpdateBrewSheetIngredient(brewSheetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...patch }: { id: string; ingredientId: string; quantity: number; notes?: string | null }) => {
+    mutationFn: async ({
+      id,
+      ...patch
+    }: {
+      id: string;
+      ingredientId: string;
+      quantity: number;
+      totalPrice?: number | null;
+      notes?: string | null;
+    }) => {
       const { error } = await supabase
         .from('brew_sheet_ingredients')
-        .update({ ingredient_id: patch.ingredientId, quantity: patch.quantity, notes: patch.notes ?? null })
+        .update({ ingredient_id: patch.ingredientId, quantity: patch.quantity, total_price: patch.totalPrice ?? null, notes: patch.notes ?? null })
         .eq('id', id);
       if (error) throw error;
     },

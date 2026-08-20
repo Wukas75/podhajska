@@ -1,24 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { format } from 'date-fns';
 import { useRecipes } from '../../hooks/useRecipes';
-import { useCreateBrewSheet, useCreateBrewSheetFromRecipe } from '../../hooks/useBrewSheets';
+import { useCreateBrewSheet, useCreateBrewSheetFromRecipe, useNextBrewSheetBatchNumber } from '../../hooks/useBrewSheets';
 import { SelectField } from '../../components/SelectField';
 
 export default function NewBrewSheetScreen() {
   const { data: recipes } = useRecipes();
+  const { data: nextBatchNumber } = useNextBrewSheetBatchNumber();
   const createBrewSheet = useCreateBrewSheet();
   const createFromRecipe = useCreateBrewSheetFromRecipe();
 
   const [name, setName] = useState('');
   const [recipeId, setRecipeId] = useState<string | null>(null);
   const [batchVolume, setBatchVolume] = useState('');
+  const [batchNumber, setBatchNumber] = useState('');
+  const [brewDate, setBrewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (nextBatchNumber != null && !batchNumber) setBatchNumber(String(nextBatchNumber));
+  }, [nextBatchNumber]);
 
   const selectedRecipe = recipes?.find((r) => r.id === recipeId);
   const volumeNumber = Number(batchVolume);
-  const canSubmit = name.trim() && batchVolume.trim() && volumeNumber > 0;
+  const batchNumberValue = Number(batchNumber);
+  const canSubmit = name.trim() && batchVolume.trim() && volumeNumber > 0 && batchNumber.trim() && batchNumberValue > 0 && brewDate.trim();
   const isSubmitting = createBrewSheet.isPending || createFromRecipe.isPending;
   const submitError = createBrewSheet.error ?? createFromRecipe.error;
 
@@ -35,7 +44,7 @@ export default function NewBrewSheetScreen() {
     if (!canSubmit) return;
     if (recipeId) {
       createFromRecipe.mutate(
-        { name: name.trim(), recipeId, batchVolumeLiters: volumeNumber },
+        { name: name.trim(), recipeId, batchVolumeLiters: volumeNumber, batchNumber: batchNumberValue, brewDate: brewDate.trim() },
         {
           onSuccess: (sheetId) => {
             router.replace({ pathname: '/brew-sheets/[id]', params: { id: sheetId } });
@@ -44,7 +53,13 @@ export default function NewBrewSheetScreen() {
       );
     } else {
       createBrewSheet.mutate(
-        { name: name.trim(), batchVolumeLiters: volumeNumber, notes: notes.trim() || null },
+        {
+          name: name.trim(),
+          batchVolumeLiters: volumeNumber,
+          batchNumber: batchNumberValue,
+          brewDate: brewDate.trim(),
+          notes: notes.trim() || null,
+        },
         {
           onSuccess: (sheet) => {
             router.replace({ pathname: '/brew-sheets/[id]', params: { id: sheet.id } });
@@ -69,6 +84,17 @@ export default function NewBrewSheetScreen() {
         {selectedRecipe && <Text style={styles.hint}>Suroviny z receptúry sa skopírujú a budú ďalej upraviteľné.</Text>}
 
         <TextInput style={styles.input} placeholder="Názov varného listu" value={name} onChangeText={setName} />
+
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <Text style={styles.label}>Poradové číslo várky</Text>
+            <TextInput style={styles.input} keyboardType="numeric" value={batchNumber} onChangeText={setBatchNumber} />
+          </View>
+          <View style={styles.col}>
+            <Text style={styles.label}>Dátum várky</Text>
+            <TextInput style={styles.input} value={brewDate} onChangeText={setBrewDate} placeholder="RRRR-MM-DD" />
+          </View>
+        </View>
 
         <Text style={styles.label}>Objem várky (litre)</Text>
         <TextInput style={styles.input} keyboardType="numeric" value={batchVolume} onChangeText={setBatchVolume} placeholder="1000" />
@@ -99,6 +125,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 8, marginTop: 12, textTransform: 'uppercase' },
   hint: { color: '#999', fontSize: 13, fontStyle: 'italic', marginTop: -8, marginBottom: 12 },
+  row: { flexDirection: 'row', gap: 8 },
+  col: { flex: 1, minWidth: 0 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',

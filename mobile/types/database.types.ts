@@ -137,6 +137,8 @@ export type BrewSheet = {
   name: string;
   recipe_id: string | null;
   batch_volume_liters: number;
+  batch_number: number;
+  brew_date: string;
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -147,6 +149,7 @@ export type BrewSheetIngredient = {
   brew_sheet_id: string;
   ingredient_id: string;
   quantity: number;
+  total_price: number | null;
   notes: string | null;
 };
 
@@ -212,7 +215,13 @@ export type Database = {
         Returns: string;
       };
       create_brew_sheet_from_recipe: {
-        Args: { p_name: string; p_recipe_id: string; p_batch_volume_liters: number };
+        Args: {
+          p_name: string;
+          p_recipe_id: string;
+          p_batch_volume_liters: number;
+          p_batch_number: number;
+          p_brew_date: string;
+        };
         Returns: string;
       };
     };
