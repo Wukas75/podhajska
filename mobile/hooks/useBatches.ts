@@ -35,6 +35,20 @@ export function useBatch(batchId: string | undefined) {
   });
 }
 
+export function useUpdateBatch(batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: { name?: string; tank_id?: string | null; start_date?: string; status?: BatchStatus }) => {
+      const { error } = await supabase.from('batches').update(patch).eq('id', batchId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batches', batchId] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+    },
+  });
+}
+
 export function useCreateBatchFromTemplate() {
   const queryClient = useQueryClient();
   return useMutation({

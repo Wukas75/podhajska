@@ -78,3 +78,40 @@ export function useSkipStep(batchId: string) {
     },
   });
 }
+
+export type BatchStepPatch = {
+  title: string;
+  due_at: string;
+  step_type: BatchStep['step_type'];
+  target_value: number | null;
+  target_unit: string | null;
+  instruction: string | null;
+};
+
+export function useUpdateBatchStep(batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<BatchStepPatch> & { id: string }) => {
+      const { error } = await supabase.from('batch_steps').update(patch).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batchSteps', batchId] });
+      queryClient.invalidateQueries({ queryKey: ['batchSteps', 'dashboard'] });
+    },
+  });
+}
+
+export function useDeleteBatchStep(batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (stepId: string) => {
+      const { error } = await supabase.from('batch_steps').delete().eq('id', stepId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batchSteps', batchId] });
+      queryClient.invalidateQueries({ queryKey: ['batchSteps', 'dashboard'] });
+    },
+  });
+}

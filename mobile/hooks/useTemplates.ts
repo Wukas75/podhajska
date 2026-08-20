@@ -58,6 +58,20 @@ export function useCreateTemplate() {
   });
 }
 
+export function useUpdateTemplate(templateId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: { name: string; style?: string | null; description?: string | null }) => {
+      const { error } = await supabase.from('recipe_templates').update(patch).eq('id', templateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates', templateId] });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+    },
+  });
+}
+
 export type TemplateStepInput = {
   day_offset: number;
   time_of_day: string;
