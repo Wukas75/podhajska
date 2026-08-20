@@ -157,6 +157,19 @@ export type BrewSheetIngredient = {
   notes: string | null;
 };
 
+export type BrewSheetProcessStep = {
+  id: string;
+  brew_sheet_id: string;
+  sort_order: number;
+  step_name: string | null;
+  value_2: string | null;
+  value_3: string | null;
+  value_4: string | null;
+  value_5: string | null;
+  value_6: string | null;
+  created_at: string;
+};
+
 export type PushToken = {
   id: string;
   user_id: string;
@@ -206,6 +219,11 @@ export type Database = {
         BrewSheetIngredient,
         Omit<BrewSheetIngredient, 'id'>,
         Partial<Omit<BrewSheetIngredient, 'id'>>
+      >;
+      brew_sheet_process_steps: TableDef<
+        BrewSheetProcessStep,
+        Omit<BrewSheetProcessStep, 'id' | 'created_at'>,
+        Partial<Omit<BrewSheetProcessStep, 'id' | 'created_at'>>
       >;
     };
     Views: NoViews;

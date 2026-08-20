@@ -16,6 +16,15 @@ import {
 } from '../../hooks/useBrewSheets';
 import { useIngredients } from '../../hooks/useIngredients';
 import { BrewSheetIngredientEditor } from '../../components/BrewSheetIngredientEditor';
+import { BrewSheetProcessTable } from '../../components/BrewSheetProcessTable';
+import {
+  useBrewSheetProcessSteps,
+  useAddBrewSheetProcessStep,
+  useUpdateBrewSheetProcessStep,
+  useReorderBrewSheetProcessSteps,
+  useDuplicateBrewSheetProcessStep,
+  useDeleteBrewSheetProcessStep,
+} from '../../hooks/useBrewSheetProcessSteps';
 import type { IngredientCategory } from '../../types/database.types';
 
 const CATEGORY_LABELS: Record<IngredientCategory, string> = {
@@ -35,6 +44,14 @@ export default function BrewSheetDetailScreen() {
   const addIngredient = useAddBrewSheetIngredient(id);
   const updateIngredient = useUpdateBrewSheetIngredient(id);
   const deleteIngredient = useDeleteBrewSheetIngredient(id);
+
+  const { data: processSteps } = useBrewSheetProcessSteps(id);
+  const addProcessStep = useAddBrewSheetProcessStep(id);
+  const updateProcessStep = useUpdateBrewSheetProcessStep(id);
+  const reorderProcessSteps = useReorderBrewSheetProcessSteps(id);
+  const duplicateProcessStep = useDuplicateBrewSheetProcessStep(id);
+  const deleteProcessStep = useDeleteBrewSheetProcessStep(id);
+  const processStepRows = processSteps ?? [];
 
   const [isEditingSheet, setIsEditingSheet] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -122,6 +139,16 @@ export default function BrewSheetDetailScreen() {
       },
       { onSuccess: () => setIsEditingResults(false) }
     );
+  }
+
+  function moveProcessStep(row: (typeof processStepRows)[number], direction: -1 | 1) {
+    const index = processStepRows.findIndex((r) => r.id === row.id);
+    const swapWith = processStepRows[index + direction];
+    if (!swapWith) return;
+    reorderProcessSteps.mutate([
+      { id: row.id, sortOrder: swapWith.sort_order },
+      { id: swapWith.id, sortOrder: row.sort_order },
+    ]);
   }
 
   return (
@@ -315,6 +342,21 @@ export default function BrewSheetDetailScreen() {
                       <Text style={styles.addButtonText}>+ Pridať surovinu</Text>
                     </Pressable>
                   )}
+
+                  <Text style={[styles.sectionTitle, styles.processTitle]}>Postup varenia</Text>
+                  <BrewSheetProcessTable
+                    rows={processStepRows}
+                    onSaveRow={(rowId, values) => updateProcessStep.mutate({ id: rowId, values })}
+                    onMoveRow={moveProcessStep}
+                    onDuplicateRow={(row) => duplicateProcessStep.mutate(row)}
+                    onDeleteRow={(rowId) => deleteProcessStep.mutate(rowId)}
+                    onAddRow={() =>
+                      addProcessStep.mutate({
+                        values: { stepName: null, value2: null, value3: null, value4: null, value5: null, value6: null },
+                        sortOrder: processStepRows.length,
+                      })
+                    }
+                  />
                 </>
               }
             />
@@ -358,6 +400,7 @@ const styles = StyleSheet.create({
   },
   textArea: { minHeight: 70, textAlignVertical: 'top' },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8 },
+  processTitle: { marginTop: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
   list: { flex: 1 },
   error: { color: '#c62828', marginTop: 8 },
   ingredientRow: {
