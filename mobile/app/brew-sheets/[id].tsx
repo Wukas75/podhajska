@@ -16,7 +16,7 @@ import {
 } from '../../hooks/useBrewSheets';
 import { useIngredients } from '../../hooks/useIngredients';
 import { BrewSheetIngredientEditor } from '../../components/BrewSheetIngredientEditor';
-import { BrewSheetProcessTable } from '../../components/BrewSheetProcessTable';
+import { ProcessStepsTable } from '../../components/ProcessStepsTable';
 import {
   useBrewSheetProcessSteps,
   useAddBrewSheetProcessStep,
@@ -25,6 +25,7 @@ import {
   useDuplicateBrewSheetProcessStep,
   useDeleteBrewSheetProcessStep,
 } from '../../hooks/useBrewSheetProcessSteps';
+import { useCopyProcessStepTemplatesToBrewSheet } from '../../hooks/useProcessStepTemplates';
 import type { IngredientCategory } from '../../types/database.types';
 
 const CATEGORY_LABELS: Record<IngredientCategory, string> = {
@@ -51,6 +52,7 @@ export default function BrewSheetDetailScreen() {
   const reorderProcessSteps = useReorderBrewSheetProcessSteps(id);
   const duplicateProcessStep = useDuplicateBrewSheetProcessStep(id);
   const deleteProcessStep = useDeleteBrewSheetProcessStep(id);
+  const copyProcessTemplate = useCopyProcessStepTemplatesToBrewSheet();
   const processStepRows = processSteps ?? [];
 
   const [isEditingSheet, setIsEditingSheet] = useState(false);
@@ -141,7 +143,7 @@ export default function BrewSheetDetailScreen() {
     );
   }
 
-  function moveProcessStep(row: (typeof processStepRows)[number], direction: -1 | 1) {
+  function moveProcessStep(row: { id: string; sort_order: number }, direction: -1 | 1) {
     const index = processStepRows.findIndex((r) => r.id === row.id);
     const swapWith = processStepRows[index + direction];
     if (!swapWith) return;
@@ -343,8 +345,22 @@ export default function BrewSheetDetailScreen() {
                     </Pressable>
                   )}
 
-                  <Text style={[styles.sectionTitle, styles.processTitle]}>Postup varenia</Text>
-                  <BrewSheetProcessTable
+                  <View style={styles.processHeader}>
+                    <Text style={[styles.sectionTitle, styles.processTitle]}>Postup varenia</Text>
+                    <Pressable
+                      style={styles.loadTemplateButton}
+                      onPress={() => copyProcessTemplate.mutate(id)}
+                      disabled={copyProcessTemplate.isPending}
+                    >
+                      <Text style={styles.loadTemplateButtonText}>
+                        {copyProcessTemplate.isPending ? '...' : 'Vložiť z nastavení'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {copyProcessTemplate.error && (
+                    <Text style={styles.error}>{(copyProcessTemplate.error as Error).message}</Text>
+                  )}
+                  <ProcessStepsTable
                     rows={processStepRows}
                     onSaveRow={(rowId, values) => updateProcessStep.mutate({ id: rowId, values })}
                     onMoveRow={moveProcessStep}
@@ -400,7 +416,18 @@ const styles = StyleSheet.create({
   },
   textArea: { minHeight: 70, textAlignVertical: 'top' },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8 },
-  processTitle: { marginTop: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
+  processHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  processTitle: { marginBottom: 0, marginTop: 0 },
+  loadTemplateButton: { paddingVertical: 6, paddingHorizontal: 10 },
+  loadTemplateButtonText: { color: '#1a1a1a', fontWeight: '600', fontSize: 13 },
   list: { flex: 1 },
   error: { color: '#c62828', marginTop: 8 },
   ingredientRow: {

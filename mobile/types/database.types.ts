@@ -170,6 +170,18 @@ export type BrewSheetProcessStep = {
   created_at: string;
 };
 
+export type ProcessStepTemplate = {
+  id: string;
+  sort_order: number;
+  step_name: string | null;
+  value_2: string | null;
+  value_3: string | null;
+  value_4: string | null;
+  value_5: string | null;
+  value_6: string | null;
+  created_at: string;
+};
+
 export type PushToken = {
   id: string;
   user_id: string;
@@ -225,6 +237,11 @@ export type Database = {
         Omit<BrewSheetProcessStep, 'id' | 'created_at'>,
         Partial<Omit<BrewSheetProcessStep, 'id' | 'created_at'>>
       >;
+      process_step_templates: TableDef<
+        ProcessStepTemplate,
+        Omit<ProcessStepTemplate, 'id' | 'created_at'>,
+        Partial<Omit<ProcessStepTemplate, 'id' | 'created_at'>>
+      >;
     };
     Views: NoViews;
     Functions: {
@@ -245,6 +262,10 @@ export type Database = {
           p_brew_date: string;
         };
         Returns: string;
+      };
+      copy_process_steps_to_brew_sheet: {
+        Args: { p_brew_sheet_id: string };
+        Returns: undefined;
       };
     };
   };

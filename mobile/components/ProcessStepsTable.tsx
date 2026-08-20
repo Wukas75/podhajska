@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { BrewSheetProcessStep } from '../types/database.types';
-import type { ProcessStepValues } from '../hooks/useBrewSheetProcessSteps';
+import type { ProcessStepValues, ProcessStepRowShape } from '../hooks/useBrewSheetProcessSteps';
 
 const CELL_WIDTH = 130;
 
-function rowToValues(row: BrewSheetProcessStep): ProcessStepValues {
+export type ProcessStepRow = ProcessStepRowShape & { id: string };
+
+function rowToValues(row: ProcessStepRow): ProcessStepValues {
   return {
     stepName: row.step_name,
     value2: row.value_2,
@@ -17,7 +18,7 @@ function rowToValues(row: BrewSheetProcessStep): ProcessStepValues {
   };
 }
 
-function ProcessStepRow({
+function ProcessStepRowEditor({
   row,
   isFirst,
   isLast,
@@ -26,7 +27,7 @@ function ProcessStepRow({
   onDuplicate,
   onDelete,
 }: {
-  row: BrewSheetProcessStep;
+  row: ProcessStepRow;
   isFirst: boolean;
   isLast: boolean;
   onSave: (values: ProcessStepValues) => void;
@@ -87,19 +88,19 @@ function ProcessStepRow({
 }
 
 type Props = {
-  rows: BrewSheetProcessStep[];
+  rows: ProcessStepRow[];
   onSaveRow: (id: string, values: ProcessStepValues) => void;
-  onMoveRow: (row: BrewSheetProcessStep, direction: -1 | 1) => void;
-  onDuplicateRow: (row: BrewSheetProcessStep) => void;
+  onMoveRow: (row: ProcessStepRow, direction: -1 | 1) => void;
+  onDuplicateRow: (row: ProcessStepRow) => void;
   onDeleteRow: (id: string) => void;
   onAddRow: () => void;
 };
 
-export function BrewSheetProcessTable({ rows, onSaveRow, onMoveRow, onDuplicateRow, onDeleteRow, onAddRow }: Props) {
+export function ProcessStepsTable({ rows, onSaveRow, onMoveRow, onDuplicateRow, onDeleteRow, onAddRow }: Props) {
   return (
     <View>
       {rows.map((row, index) => (
-        <ProcessStepRow
+        <ProcessStepRowEditor
           key={row.id}
           row={row}
           isFirst={index === 0}
