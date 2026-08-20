@@ -27,7 +27,13 @@ const CATEGORY_FILTERS: { value: IngredientCategory | 'all'; label: string }[] =
 
 let localIdCounter = 0;
 
-type DraftItem = { localId: number; ingredientId: string | null; quantity: string; categoryFilter: IngredientCategory | 'all' };
+type DraftItem = {
+  localId: number;
+  ingredientId: string | null;
+  quantity: string;
+  totalPrice: string;
+  categoryFilter: IngredientCategory | 'all';
+};
 
 export default function NewStockReceiptScreen() {
   const { data: ingredients } = useIngredients();
@@ -38,7 +44,7 @@ export default function NewStockReceiptScreen() {
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [documentNumber, setDocumentNumber] = useState('');
   const [items, setItems] = useState<DraftItem[]>([
-    { localId: ++localIdCounter, ingredientId: null, quantity: '', categoryFilter: 'all' },
+    { localId: ++localIdCounter, ingredientId: null, quantity: '', totalPrice: '', categoryFilter: 'all' },
   ]);
 
   function ingredientOptionsFor(categoryFilter: IngredientCategory | 'all') {
@@ -62,7 +68,10 @@ export default function NewStockReceiptScreen() {
   }
 
   function addItem() {
-    setItems((prev) => [...prev, { localId: ++localIdCounter, ingredientId: null, quantity: '', categoryFilter: 'all' }]);
+    setItems((prev) => [
+      ...prev,
+      { localId: ++localIdCounter, ingredientId: null, quantity: '', totalPrice: '', categoryFilter: 'all' },
+    ]);
   }
 
   function removeItem(localId: number) {
@@ -71,6 +80,7 @@ export default function NewStockReceiptScreen() {
 
   const validItems = items.filter((it) => it.ingredientId && it.quantity.trim() && Number(it.quantity) > 0);
   const canSubmit = supplierId && receiptDate.trim() && validItems.length > 0;
+  const totalSum = items.reduce((sum, it) => sum + (it.totalPrice.trim() ? Number(it.totalPrice) : 0), 0);
 
   function handleSubmit() {
     if (!canSubmit) return;
@@ -79,7 +89,11 @@ export default function NewStockReceiptScreen() {
         receiptDate: receiptDate.trim(),
         supplierId,
         documentNumber: documentNumber.trim() || null,
-        items: validItems.map((it) => ({ ingredient_id: it.ingredientId!, quantity: Number(it.quantity) })),
+        items: validItems.map((it) => ({
+          ingredient_id: it.ingredientId!,
+          quantity: Number(it.quantity),
+          total_price: it.totalPrice.trim() ? Number(it.totalPrice) : null,
+        })),
       },
       { onSuccess: () => router.back() }
     );
@@ -139,20 +153,36 @@ export default function NewStockReceiptScreen() {
               selectedId={item.ingredientId}
               onSelect={(id) => updateItem(item.localId, { ingredientId: id })}
             />
-            <Text style={styles.label}>Množstvo</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={item.quantity}
-              onChangeText={(v) => updateItem(item.localId, { quantity: v })}
-              placeholder="0"
-            />
+            <View style={styles.quantityPriceRow}>
+              <View style={styles.quantityPriceCol}>
+                <Text style={styles.label}>Množstvo</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={item.quantity}
+                  onChangeText={(v) => updateItem(item.localId, { quantity: v })}
+                  placeholder="0"
+                />
+              </View>
+              <View style={styles.quantityPriceCol}>
+                <Text style={styles.label}>Cena (voliteľné)</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={item.totalPrice}
+                  onChangeText={(v) => updateItem(item.localId, { totalPrice: v })}
+                  placeholder="0"
+                />
+              </View>
+            </View>
           </View>
         ))}
 
         <Pressable style={styles.addItemButton} onPress={addItem}>
           <Text style={styles.addItemButtonText}>+ Pridať položku</Text>
         </Pressable>
+
+        {totalSum > 0 && <Text style={styles.totalSum}>Celková suma: {totalSum.toFixed(2)} €</Text>}
 
         {createReceipt.error && <Text style={styles.error}>{(createReceipt.error as Error).message}</Text>}
 
@@ -189,8 +219,11 @@ const styles = StyleSheet.create({
   categoryChipTextActive: { color: '#fff' },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   itemIndex: { fontSize: 13, fontWeight: '600', color: '#666' },
+  quantityPriceRow: { flexDirection: 'row', gap: 8 },
+  quantityPriceCol: { flex: 1, minWidth: 0 },
   addItemButton: { paddingVertical: 14, alignItems: 'center' },
   addItemButtonText: { color: '#1a1a1a', fontWeight: '600' },
+  totalSum: { fontSize: 16, fontWeight: '700', textAlign: 'right', marginTop: 4 },
   error: { color: '#c62828', marginTop: 12 },
   button: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
   buttonDisabled: { opacity: 0.5 },

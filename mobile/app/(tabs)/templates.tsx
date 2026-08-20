@@ -20,12 +20,20 @@ export default function TemplatesScreen() {
           </Link>
         </View>
 
-        <Link href={'/recipes' as never} asChild>
-          <Pressable style={styles.subLink}>
-            <Text style={styles.subLinkText}>Receptúry (zoznamy surovín)</Text>
-            <Ionicons name="chevron-forward" size={14} color="#1a1a1a" />
-          </Pressable>
-        </Link>
+        <View style={styles.subLinksRow}>
+          <Link href={'/recipes' as never} asChild>
+            <Pressable style={styles.subLink}>
+              <Text style={styles.subLinkText}>Receptúry</Text>
+              <Ionicons name="chevron-forward" size={14} color="#1a1a1a" />
+            </Pressable>
+          </Link>
+          <Link href={'/brew-sheets' as never} asChild>
+            <Pressable style={styles.subLink}>
+              <Text style={styles.subLinkText}>Varné listy</Text>
+              <Ionicons name="chevron-forward" size={14} color="#1a1a1a" />
+            </Pressable>
+          </Link>
+        </View>
 
         {isLoading && <ActivityIndicator style={{ marginTop: 20 }} />}
         {error && <Text style={styles.error}>{(error as Error).message}</Text>}
@@ -56,7 +64,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700' },
   addButton: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   addButtonText: { color: '#fff', fontWeight: '600' },
-  subLink: { flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-start', marginBottom: 16 },
+  subLinksRow: { flexDirection: 'row', gap: 20, marginBottom: 16 },
+  subLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   subLinkText: { color: '#1a1a1a', fontWeight: '600', fontSize: 14 },
   error: { color: '#c62828', marginTop: 8 },
   row: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },

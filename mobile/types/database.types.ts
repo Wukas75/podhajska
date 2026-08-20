@@ -110,7 +110,7 @@ export type StockReceiptItem = {
   receipt_id: string;
   ingredient_id: string;
   quantity: number;
-  unit_price: number | null;
+  total_price: number | null;
   notes: string | null;
 };
 
@@ -127,6 +127,24 @@ export type Recipe = {
 export type RecipeIngredient = {
   id: string;
   recipe_id: string;
+  ingredient_id: string;
+  quantity: number;
+  notes: string | null;
+};
+
+export type BrewSheet = {
+  id: string;
+  name: string;
+  recipe_id: string | null;
+  batch_volume_liters: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type BrewSheetIngredient = {
+  id: string;
+  brew_sheet_id: string;
   ingredient_id: string;
   quantity: number;
   notes: string | null;
@@ -176,6 +194,12 @@ export type Database = {
       suppliers: TableDef<Supplier, Omit<Supplier, 'id' | 'created_at'>, Partial<Omit<Supplier, 'id' | 'created_at'>>>;
       recipes: TableDef<Recipe, Omit<Recipe, 'id' | 'created_at'>, Partial<Omit<Recipe, 'id' | 'created_at'>>>;
       recipe_ingredients: TableDef<RecipeIngredient, Omit<RecipeIngredient, 'id'>, Partial<Omit<RecipeIngredient, 'id'>>>;
+      brew_sheets: TableDef<BrewSheet, Omit<BrewSheet, 'id' | 'created_at'>, Partial<Omit<BrewSheet, 'id' | 'created_at'>>>;
+      brew_sheet_ingredients: TableDef<
+        BrewSheetIngredient,
+        Omit<BrewSheetIngredient, 'id'>,
+        Partial<Omit<BrewSheetIngredient, 'id'>>
+      >;
     };
     Views: NoViews;
     Functions: {
@@ -185,6 +209,10 @@ export type Database = {
       };
       create_stock_receipt: {
         Args: { p_receipt_date: string; p_supplier_id: string; p_document_number: string | null; p_items: unknown };
+        Returns: string;
+      };
+      create_brew_sheet_from_recipe: {
+        Args: { p_name: string; p_recipe_id: string; p_batch_volume_liters: number };
         Returns: string;
       };
     };

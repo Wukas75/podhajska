@@ -25,23 +25,30 @@ export default function StockReceiptsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingTop: 8 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-          renderItem={({ item }: { item: StockReceiptWithItems }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardDate}>{format(parseISO(item.receipt_date), 'd.M.yyyy')}</Text>
-                {item.document_number ? <Text style={styles.cardDoc}>{item.document_number}</Text> : null}
-              </View>
-              <Text style={styles.cardSupplier}>{item.supplier?.name ?? 'Neznámy dodávateľ'}</Text>
-              {item.items.map((it) => (
-                <View key={it.id} style={styles.itemRow}>
-                  <Text style={styles.itemName}>{it.ingredient?.name ?? '—'}</Text>
-                  <Text style={styles.itemQty}>
-                    {it.quantity} {it.ingredient?.unit ?? ''}
-                  </Text>
+          renderItem={({ item }: { item: StockReceiptWithItems }) => {
+            const totalSum = item.items.reduce((sum, it) => sum + (it.total_price ?? 0), 0);
+            return (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardDate}>{format(parseISO(item.receipt_date), 'd.M.yyyy')}</Text>
+                  {item.document_number ? <Text style={styles.cardDoc}>{item.document_number}</Text> : null}
                 </View>
-              ))}
-            </View>
-          )}
+                <Text style={styles.cardSupplier}>{item.supplier?.name ?? 'Neznámy dodávateľ'}</Text>
+                {item.items.map((it) => (
+                  <View key={it.id} style={styles.itemRow}>
+                    <Text style={styles.itemName}>{it.ingredient?.name ?? '—'}</Text>
+                    <View style={styles.itemRight}>
+                      <Text style={styles.itemQty}>
+                        {it.quantity} {it.ingredient?.unit ?? ''}
+                      </Text>
+                      {it.total_price != null && <Text style={styles.itemPrice}>{it.total_price.toFixed(2)} €</Text>}
+                    </View>
+                  </View>
+                ))}
+                {totalSum > 0 && <Text style={styles.cardTotal}>Spolu: {totalSum.toFixed(2)} €</Text>}
+              </View>
+            );
+          }}
           ListEmptyComponent={!isLoading ? <Text style={styles.empty}>Zatiaľ žiadne príjemky.</Text> : null}
         />
       </View>
@@ -62,6 +69,9 @@ const styles = StyleSheet.create({
   cardSupplier: { fontSize: 16, fontWeight: '700', marginTop: 4, marginBottom: 8 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   itemName: { fontSize: 14, color: '#333' },
+  itemRight: { alignItems: 'flex-end' },
   itemQty: { fontSize: 14, color: '#666' },
+  itemPrice: { fontSize: 12, color: '#999' },
+  cardTotal: { fontSize: 14, fontWeight: '700', textAlign: 'right', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e5e5e5' },
   empty: { color: '#999', marginTop: 24, textAlign: 'center' },
 });

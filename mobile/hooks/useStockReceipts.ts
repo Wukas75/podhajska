@@ -5,13 +5,13 @@ import type { StockReceipt } from '../types/database.types';
 export type StockReceiptItemInput = {
   ingredient_id: string;
   quantity: number;
-  unit_price?: number | null;
+  total_price?: number | null;
   notes?: string | null;
 };
 
 export type StockReceiptWithItems = StockReceipt & {
   supplier: { name: string } | null;
-  items: { id: string; quantity: number; unit_price: number | null; ingredient: { name: string; unit: string } | null }[];
+  items: { id: string; quantity: number; total_price: number | null; ingredient: { name: string; unit: string } | null }[];
 };
 
 export function useStockReceipts() {
@@ -20,7 +20,7 @@ export function useStockReceipts() {
     queryFn: async (): Promise<StockReceiptWithItems[]> => {
       const { data, error } = await supabase
         .from('stock_receipts')
-        .select('*, supplier:suppliers(name), items:stock_receipt_items(id, quantity, unit_price, ingredient:ingredients(name, unit))')
+        .select('*, supplier:suppliers(name), items:stock_receipt_items(id, quantity, total_price, ingredient:ingredients(name, unit))')
         .order('receipt_date', { ascending: false });
       if (error) throw error;
       return data as unknown as StockReceiptWithItems[];
