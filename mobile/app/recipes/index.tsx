@@ -1,48 +1,44 @@
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTemplates } from '../../hooks/useTemplates';
-import type { RecipeTemplate } from '../../types/database.types';
+import { Link, Stack } from 'expo-router';
+import { useRecipes } from '../../hooks/useRecipes';
+import type { Recipe } from '../../types/database.types';
 
-export default function TemplatesScreen() {
-  const { data: templates, isLoading, error, refetch, isRefetching } = useTemplates();
+export default function RecipesScreen() {
+  const { data: recipes, isLoading, error, refetch, isRefetching } = useRecipes();
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ title: 'Receptúry', headerShown: true }} />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Šablóny receptov</Text>
-          <Link href="/templates/new" asChild>
+          <Text style={styles.title}>Receptúry</Text>
+          <Link href="/recipes/new" asChild>
             <Pressable style={styles.addButton}>
               <Text style={styles.addButtonText}>+ Nová</Text>
             </Pressable>
           </Link>
         </View>
 
-        <Link href={'/recipes' as never} asChild>
-          <Pressable style={styles.subLink}>
-            <Text style={styles.subLinkText}>Receptúry (zoznamy surovín)</Text>
-            <Ionicons name="chevron-forward" size={14} color="#1a1a1a" />
-          </Pressable>
-        </Link>
-
         {isLoading && <ActivityIndicator style={{ marginTop: 20 }} />}
         {error && <Text style={styles.error}>{(error as Error).message}</Text>}
 
         <FlatList
-          data={templates ?? []}
+          data={recipes ?? []}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-          renderItem={({ item }: { item: RecipeTemplate }) => (
-            <Link href={{ pathname: '/templates/[id]', params: { id: item.id } }} asChild>
+          renderItem={({ item }: { item: Recipe }) => (
+            <Link href={{ pathname: '/recipes/[id]', params: { id: item.id } }} asChild>
               <Pressable style={styles.row}>
                 <Text style={styles.rowTitle}>{item.name}</Text>
-                {item.style ? <Text style={styles.rowSubtitle}>{item.style}</Text> : null}
+                <Text style={styles.rowSubtitle}>
+                  {item.style ? `${item.style} · ` : ''}
+                  {item.batch_volume_liters} l
+                </Text>
               </Pressable>
             </Link>
           )}
-          ListEmptyComponent={!isLoading ? <Text style={styles.empty}>Zatiaľ žiadne šablóny.</Text> : null}
+          ListEmptyComponent={!isLoading ? <Text style={styles.empty}>Zatiaľ žiadne receptúry.</Text> : null}
         />
       </View>
     </SafeAreaView>
@@ -56,8 +52,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700' },
   addButton: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   addButtonText: { color: '#fff', fontWeight: '600' },
-  subLink: { flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-start', marginBottom: 16 },
-  subLinkText: { color: '#1a1a1a', fontWeight: '600', fontSize: 14 },
   error: { color: '#c62828', marginTop: 8 },
   row: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
   rowTitle: { fontSize: 16, fontWeight: '500' },

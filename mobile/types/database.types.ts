@@ -114,6 +114,24 @@ export type StockReceiptItem = {
   notes: string | null;
 };
 
+export type Recipe = {
+  id: string;
+  name: string;
+  style: string | null;
+  batch_volume_liters: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type RecipeIngredient = {
+  id: string;
+  recipe_id: string;
+  ingredient_id: string;
+  quantity: number;
+  notes: string | null;
+};
+
 export type PushToken = {
   id: string;
   user_id: string;
@@ -156,6 +174,8 @@ export type Database = {
       >;
       stock_receipt_items: TableDef<StockReceiptItem, Omit<StockReceiptItem, 'id'>, Partial<Omit<StockReceiptItem, 'id'>>>;
       suppliers: TableDef<Supplier, Omit<Supplier, 'id' | 'created_at'>, Partial<Omit<Supplier, 'id' | 'created_at'>>>;
+      recipes: TableDef<Recipe, Omit<Recipe, 'id' | 'created_at'>, Partial<Omit<Recipe, 'id' | 'created_at'>>>;
+      recipe_ingredients: TableDef<RecipeIngredient, Omit<RecipeIngredient, 'id'>, Partial<Omit<RecipeIngredient, 'id'>>>;
     };
     Views: NoViews;
     Functions: {
