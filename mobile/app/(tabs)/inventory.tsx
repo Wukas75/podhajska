@@ -144,7 +144,7 @@ export default function InventoryScreen() {
               <View style={styles.row}>
                 <View>
                   <Text style={styles.rowName}>{item.name}</Text>
-                  <Text style={styles.rowStock}>
+                  <Text style={[styles.rowStock, item.stock < 0 && styles.rowStockNegative]}>
                     {item.stock} {item.unit}
                   </Text>
                 </View>
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
   },
   rowName: { fontSize: 16, fontWeight: '500' },
   rowStock: { fontSize: 14, color: '#666' },
+  rowStockNegative: { color: '#c62828', fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 16 },
   empty: { color: '#999', marginTop: 24, textAlign: 'center' },
   editRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },

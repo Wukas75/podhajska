@@ -108,6 +108,7 @@ export function useCreateBrewSheetFromRecipe() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brewSheets'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 }
@@ -153,6 +154,7 @@ export function useScaleBrewSheetIngredients(brewSheetId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brewSheets', brewSheetId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 }
@@ -172,6 +174,7 @@ export function useAddBrewSheetIngredient(brewSheetId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brewSheets', brewSheetId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 }
@@ -197,6 +200,7 @@ export function useUpdateBrewSheetIngredient(brewSheetId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brewSheets', brewSheetId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 }
@@ -210,6 +214,7 @@ export function useDeleteBrewSheetIngredient(brewSheetId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brewSheets', brewSheetId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 }

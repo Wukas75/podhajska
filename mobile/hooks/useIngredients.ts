@@ -8,16 +8,21 @@ export function useIngredients() {
   return useQuery({
     queryKey: ['ingredients'],
     queryFn: async (): Promise<IngredientWithStock[]> => {
-      const [ingredientsRes, itemsRes] = await Promise.all([
+      const [ingredientsRes, receiptItemsRes, brewSheetItemsRes] = await Promise.all([
         supabase.from('ingredients').select('*').eq('is_active', true).order('name'),
         supabase.from('stock_receipt_items').select('ingredient_id, quantity'),
+        supabase.from('brew_sheet_ingredients').select('ingredient_id, quantity'),
       ]);
       if (ingredientsRes.error) throw ingredientsRes.error;
-      if (itemsRes.error) throw itemsRes.error;
+      if (receiptItemsRes.error) throw receiptItemsRes.error;
+      if (brewSheetItemsRes.error) throw brewSheetItemsRes.error;
 
       const stockByIngredient = new Map<string, number>();
-      for (const item of itemsRes.data) {
+      for (const item of receiptItemsRes.data) {
         stockByIngredient.set(item.ingredient_id, (stockByIngredient.get(item.ingredient_id) ?? 0) + Number(item.quantity));
+      }
+      for (const item of brewSheetItemsRes.data) {
+        stockByIngredient.set(item.ingredient_id, (stockByIngredient.get(item.ingredient_id) ?? 0) - Number(item.quantity));
       }
 
       return ingredientsRes.data.map((ingredient) => ({
