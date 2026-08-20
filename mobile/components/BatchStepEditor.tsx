@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { format } from 'date-fns';
-import type { BatchStep, StepType } from '../types/database.types';
+import type { StepType } from '../types/database.types';
 import type { BatchStepPatch } from '../hooks/useBatchSteps';
 
 const STEP_TYPES: { value: StepType; label: string }[] = [
@@ -13,22 +13,22 @@ const STEP_TYPES: { value: StepType; label: string }[] = [
 ];
 
 type Props = {
-  step: BatchStep;
+  initial?: Partial<BatchStepPatch>;
   submitLabel: string;
   onSubmit: (patch: BatchStepPatch) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 };
 
-export function BatchStepEditor({ step, submitLabel, onSubmit, onCancel, isSubmitting }: Props) {
-  const due = new Date(step.due_at);
+export function BatchStepEditor({ initial, submitLabel, onSubmit, onCancel, isSubmitting }: Props) {
+  const due = initial?.due_at ? new Date(initial.due_at) : new Date();
   const [dateStr, setDateStr] = useState(format(due, 'yyyy-MM-dd'));
   const [timeStr, setTimeStr] = useState(format(due, 'HH:mm'));
-  const [title, setTitle] = useState(step.title);
-  const [stepType, setStepType] = useState<StepType>(step.step_type);
-  const [targetValue, setTargetValue] = useState(step.target_value != null ? String(step.target_value) : '');
-  const [targetUnit, setTargetUnit] = useState(step.target_unit ?? '');
-  const [instruction, setInstruction] = useState(step.instruction ?? '');
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [stepType, setStepType] = useState<StepType>(initial?.step_type ?? 'custom');
+  const [targetValue, setTargetValue] = useState(initial?.target_value != null ? String(initial.target_value) : '');
+  const [targetUnit, setTargetUnit] = useState(initial?.target_unit ?? '');
+  const [instruction, setInstruction] = useState(initial?.instruction ?? '');
 
   function handleSubmit() {
     if (!title.trim() || !dateStr.trim() || !timeStr.trim()) return;

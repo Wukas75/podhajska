@@ -88,6 +88,32 @@ export type BatchStepPatch = {
   instruction: string | null;
 };
 
+export function useAddBatchStep(batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: BatchStepPatch) => {
+      const { error } = await supabase.from('batch_steps').insert({
+        ...input,
+        batch_id: batchId,
+        status: 'pending',
+        day_offset: 0,
+        template_step_id: null,
+        actual_value: null,
+        actual_unit: null,
+        notes: null,
+        completed_by: null,
+        completed_at: null,
+        notified_at: null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batchSteps', batchId] });
+      queryClient.invalidateQueries({ queryKey: ['batchSteps', 'dashboard'] });
+    },
+  });
+}
+
 export function useUpdateBatchStep(batchId: string) {
   const queryClient = useQueryClient();
   return useMutation({

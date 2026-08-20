@@ -4,7 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useBatch, useUpdateBatch } from '../../hooks/useBatches';
-import { useBatchSteps, useMarkStepDone, useSkipStep, useUpdateBatchStep, useDeleteBatchStep } from '../../hooks/useBatchSteps';
+import {
+  useBatchSteps,
+  useMarkStepDone,
+  useSkipStep,
+  useAddBatchStep,
+  useUpdateBatchStep,
+  useDeleteBatchStep,
+} from '../../hooks/useBatchSteps';
 import { useTanks } from '../../hooks/useTanks';
 import { useRealtimeBatchSteps } from '../../hooks/useRealtimeBatchSteps';
 import { StepCard } from '../../components/StepCard';
@@ -28,10 +35,12 @@ export default function BatchDetailScreen() {
   const updateBatch = useUpdateBatch(id);
   const markDone = useMarkStepDone(id);
   const skipStep = useSkipStep(id);
+  const addStep = useAddBatchStep(id);
   const updateStep = useUpdateBatchStep(id);
   const deleteStep = useDeleteBatchStep(id);
   const [activeStepId, setActiveStepId] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
+  const [isAddingStep, setIsAddingStep] = useState(false);
 
   const [isEditingBatch, setIsEditingBatch] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -152,7 +161,7 @@ export default function BatchDetailScreen() {
             if (editingStepId === item.id) {
               return (
                 <BatchStepEditor
-                  step={item}
+                  initial={item}
                   submitLabel="Uložiť"
                   isSubmitting={updateStep.isPending}
                   onCancel={() => setEditingStepId(null)}
@@ -172,6 +181,22 @@ export default function BatchDetailScreen() {
             );
           }}
           ListEmptyComponent={!isLoading ? <Text style={styles.empty}>Táto šarža zatiaľ nemá žiadne kroky.</Text> : null}
+          ListFooterComponent={
+            isAddingStep ? (
+              <BatchStepEditor
+                submitLabel="Pridať krok"
+                isSubmitting={addStep.isPending}
+                onCancel={() => setIsAddingStep(false)}
+                onSubmit={(input) => {
+                  addStep.mutate(input, { onSuccess: () => setIsAddingStep(false) });
+                }}
+              />
+            ) : (
+              <Pressable style={styles.addButton} onPress={() => setIsAddingStep(true)}>
+                <Text style={styles.addButtonText}>+ Pridať krok</Text>
+              </Pressable>
+            )
+          }
         />
       </View>
     </SafeAreaView>
@@ -202,4 +227,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
   },
+  addButton: { paddingVertical: 14, alignItems: 'center' },
+  addButtonText: { color: '#1a1a1a', fontWeight: '600' },
 });
