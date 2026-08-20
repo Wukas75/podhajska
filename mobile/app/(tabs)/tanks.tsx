@@ -1,14 +1,81 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, Modal, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCreateTank, useTanks } from '../../hooks/useTanks';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useCreateTank, useTanks, useUpdateTank, useDeactivateTank } from '../../hooks/useTanks';
 import type { Tank } from '../../types/database.types';
+
+function ConfirmDeleteModal({ tank, onCancel, onConfirm }: { tank: Tank; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable style={styles.modalBackdrop} onPress={onCancel}>
+        <Pressable style={styles.confirmSheet} onPress={(e) => e.stopPropagation()}>
+          <Text style={styles.confirmTitle}>Zmazať tank</Text>
+          <Text style={styles.confirmMessage}>Naozaj chcete zmazať tank „{tank.name}"?</Text>
+          <View style={styles.confirmActions}>
+            <Pressable style={styles.cancelButton} onPress={onCancel}>
+              <Text style={styles.cancelButtonText}>Zrušiť</Text>
+            </Pressable>
+            <Pressable style={styles.confirmDeleteButton} onPress={onConfirm}>
+              <Text style={styles.confirmDeleteButtonText}>Zmazať</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function TankEditRow({ tank, onCancel }: { tank: Tank; onCancel: () => void }) {
+  const updateTank = useUpdateTank();
+  const [name, setName] = useState(tank.name);
+  const [capacity, setCapacity] = useState(tank.capacity_liters != null ? String(tank.capacity_liters) : '');
+
+  function handleSave() {
+    if (!name.trim()) return;
+    updateTank.mutate(
+      { id: tank.id, name: name.trim(), capacity_liters: capacity.trim() ? Number(capacity) : null },
+      { onSuccess: onCancel }
+    );
+  }
+
+  return (
+    <View style={styles.editRow}>
+      <View style={styles.form}>
+        <TextInput style={styles.input} placeholder="Názov tanku" value={name} onChangeText={setName} />
+        <TextInput
+          style={[styles.input, styles.inputSmall]}
+          placeholder="Litre"
+          keyboardType="numeric"
+          value={capacity}
+          onChangeText={setCapacity}
+        />
+      </View>
+      {updateTank.error && <Text style={styles.error}>{(updateTank.error as Error).message}</Text>}
+      <View style={styles.editActions}>
+        <Pressable style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>Zrušiť</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.saveButton, !name.trim() && styles.buttonDisabled]}
+          onPress={handleSave}
+          disabled={!name.trim() || updateTank.isPending}
+        >
+          <Text style={styles.saveButtonText}>{updateTank.isPending ? 'Ukladám...' : 'Uložiť'}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
 
 export default function TanksScreen() {
   const { data: tanks, isLoading, error, refetch, isRefetching } = useTanks();
   const createTank = useCreateTank();
+  const deactivateTank = useDeactivateTank();
   const [name, setName] = useState('');
   const [capacity, setCapacity] = useState('');
+  const [editingTankId, setEditingTankId] = useState<string | null>(null);
+  const [deletingTank, setDeletingTank] = useState<Tank | null>(null);
 
   function handleAdd() {
     if (!name.trim()) return;
@@ -46,15 +113,40 @@ export default function TanksScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingTop: 8 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-          renderItem={({ item }: { item: Tank }) => (
-            <View style={styles.tankRow}>
-              <Text style={styles.tankName}>{item.name}</Text>
-              {item.capacity_liters ? <Text style={styles.tankCapacity}>{item.capacity_liters} l</Text> : null}
-            </View>
-          )}
+          renderItem={({ item }: { item: Tank }) =>
+            editingTankId === item.id ? (
+              <TankEditRow tank={item} onCancel={() => setEditingTankId(null)} />
+            ) : (
+              <View style={styles.tankRow}>
+                <View>
+                  <Text style={styles.tankName}>{item.name}</Text>
+                  {item.capacity_liters ? <Text style={styles.tankCapacity}>{item.capacity_liters} l</Text> : null}
+                </View>
+                <View style={styles.actions}>
+                  <Pressable onPress={() => setEditingTankId(item.id)} hitSlop={8} accessibilityLabel="Upraviť tank">
+                    <Ionicons name="create-outline" size={18} color="#333" />
+                  </Pressable>
+                  <Pressable onPress={() => setDeletingTank(item)} hitSlop={8} accessibilityLabel="Zmazať tank">
+                    <Ionicons name="trash-outline" size={18} color="#c62828" />
+                  </Pressable>
+                </View>
+              </View>
+            )
+          }
           ListEmptyComponent={!isLoading ? <Text style={styles.empty}>Zatiaľ žiadne tanky.</Text> : null}
         />
       </View>
+
+      {deletingTank && (
+        <ConfirmDeleteModal
+          tank={deletingTank}
+          onCancel={() => setDeletingTank(null)}
+          onConfirm={() => {
+            deactivateTank.mutate(deletingTank.id);
+            setDeletingTank(null);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -85,11 +177,27 @@ const styles = StyleSheet.create({
   tankRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   tankName: { fontSize: 16, fontWeight: '500' },
   tankCapacity: { fontSize: 14, color: '#666' },
+  actions: { flexDirection: 'row', gap: 16 },
   empty: { color: '#999', marginTop: 24, textAlign: 'center' },
+  editRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  cancelButton: { paddingVertical: 10, paddingHorizontal: 14 },
+  cancelButtonText: { color: '#666', fontWeight: '500' },
+  saveButton: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
+  saveButtonText: { color: '#fff', fontWeight: '600' },
+  buttonDisabled: { opacity: 0.5 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  confirmSheet: { backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '100%', maxWidth: 360 },
+  confirmTitle: { fontSize: 17, fontWeight: '700', marginBottom: 8 },
+  confirmMessage: { fontSize: 14, color: '#444', marginBottom: 20 },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  confirmDeleteButton: { backgroundColor: '#c62828', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
+  confirmDeleteButtonText: { color: '#fff', fontWeight: '600' },
 });

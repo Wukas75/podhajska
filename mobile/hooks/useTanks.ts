@@ -34,3 +34,32 @@ export function useCreateTank() {
     },
   });
 }
+
+export function useUpdateTank() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...patch
+    }: { id: string; name: string; capacity_liters: number | null; notes?: string | null }) => {
+      const { error } = await supabase.from('tanks').update(patch).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tanks'] });
+    },
+  });
+}
+
+export function useDeactivateTank() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (tankId: string) => {
+      const { error } = await supabase.from('tanks').update({ is_active: false }).eq('id', tankId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tanks'] });
+    },
+  });
+}
