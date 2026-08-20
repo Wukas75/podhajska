@@ -104,6 +104,13 @@ export default function InventoryScreen() {
           </Link>
         </View>
 
+        <Link href="/inventory/suppliers" asChild>
+          <Pressable style={styles.suppliersLink}>
+            <Text style={styles.suppliersLinkText}>Spravovať dodávateľov</Text>
+            <Ionicons name="chevron-forward" size={14} color="#1a1a1a" />
+          </Pressable>
+        </Link>
+
         <View style={styles.form}>
           <TextInput style={styles.input} placeholder="Názov suroviny" value={name} onChangeText={setName} />
           <TextInput style={[styles.input, styles.inputSmall]} placeholder="Jednotka" value={unit} onChangeText={setUnit} />
@@ -170,6 +177,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700' },
   receiptButton: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   receiptButtonText: { color: '#fff', fontWeight: '600' },
+  suppliersLink: { flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-start', marginBottom: 16 },
+  suppliersLinkText: { color: '#1a1a1a', fontWeight: '600', fontSize: 14 },
   form: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   input: {
     flex: 1,

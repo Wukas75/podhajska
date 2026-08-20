@@ -87,10 +87,18 @@ export type Ingredient = {
   created_at: string;
 };
 
+export type Supplier = {
+  id: string;
+  name: string;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
 export type StockReceipt = {
   id: string;
   receipt_date: string;
-  supplier: string;
+  supplier_id: string;
   document_number: string | null;
   notes: string | null;
   created_by: string | null;
@@ -147,6 +155,7 @@ export type Database = {
         Partial<Omit<StockReceipt, 'id' | 'created_at'>>
       >;
       stock_receipt_items: TableDef<StockReceiptItem, Omit<StockReceiptItem, 'id'>, Partial<Omit<StockReceiptItem, 'id'>>>;
+      suppliers: TableDef<Supplier, Omit<Supplier, 'id' | 'created_at'>, Partial<Omit<Supplier, 'id' | 'created_at'>>>;
     };
     Views: NoViews;
     Functions: {
@@ -155,7 +164,7 @@ export type Database = {
         Returns: string;
       };
       create_stock_receipt: {
-        Args: { p_receipt_date: string; p_supplier: string; p_document_number: string | null; p_items: unknown };
+        Args: { p_receipt_date: string; p_supplier_id: string; p_document_number: string | null; p_items: unknown };
         Returns: string;
       };
     };
