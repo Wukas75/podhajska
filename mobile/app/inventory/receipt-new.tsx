@@ -1,0 +1,150 @@
+import { useState } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { format } from 'date-fns';
+import { useIngredients } from '../../hooks/useIngredients';
+import { useCreateStockReceipt } from '../../hooks/useStockReceipts';
+import { SelectField } from '../../components/SelectField';
+import type { IngredientCategory } from '../../types/database.types';
+
+const CATEGORY_LABELS: Record<IngredientCategory, string> = {
+  malt: 'Slad',
+  hops: 'Chmeľ',
+  yeast: 'Kvasinky',
+  other: 'Ostatné',
+};
+
+let localIdCounter = 0;
+
+type DraftItem = { localId: number; ingredientId: string | null; quantity: string };
+
+export default function NewStockReceiptScreen() {
+  const { data: ingredients } = useIngredients();
+  const createReceipt = useCreateStockReceipt();
+
+  const [receiptDate, setReceiptDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [supplier, setSupplier] = useState('');
+  const [documentNumber, setDocumentNumber] = useState('');
+  const [items, setItems] = useState<DraftItem[]>([{ localId: ++localIdCounter, ingredientId: null, quantity: '' }]);
+
+  const ingredientOptions = (ingredients ?? []).map((i) => ({
+    id: i.id,
+    label: i.name,
+    sublabel: `${CATEGORY_LABELS[i.category]} · ${i.unit}`,
+  }));
+
+  function updateItem(localId: number, patch: Partial<DraftItem>) {
+    setItems((prev) => prev.map((it) => (it.localId === localId ? { ...it, ...patch } : it)));
+  }
+
+  function addItem() {
+    setItems((prev) => [...prev, { localId: ++localIdCounter, ingredientId: null, quantity: '' }]);
+  }
+
+  function removeItem(localId: number) {
+    setItems((prev) => prev.filter((it) => it.localId !== localId));
+  }
+
+  const validItems = items.filter((it) => it.ingredientId && it.quantity.trim() && Number(it.quantity) > 0);
+  const canSubmit = supplier.trim() && receiptDate.trim() && validItems.length > 0;
+
+  function handleSubmit() {
+    if (!canSubmit) return;
+    createReceipt.mutate(
+      {
+        receiptDate: receiptDate.trim(),
+        supplier: supplier.trim(),
+        documentNumber: documentNumber.trim() || null,
+        items: validItems.map((it) => ({ ingredient_id: it.ingredientId!, quantity: Number(it.quantity) })),
+      },
+      { onSuccess: () => router.back() }
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Nová príjemka</Text>
+
+        <Text style={styles.label}>Dátum (RRRR-MM-DD)</Text>
+        <TextInput style={styles.input} value={receiptDate} onChangeText={setReceiptDate} />
+
+        <Text style={styles.label}>Dodávateľ</Text>
+        <TextInput style={styles.input} value={supplier} onChangeText={setSupplier} placeholder="Názov dodávateľa" />
+
+        <Text style={styles.label}>Číslo dokladu (voliteľné)</Text>
+        <TextInput style={styles.input} value={documentNumber} onChangeText={setDocumentNumber} placeholder="napr. FA-2026-001" />
+
+        <Text style={[styles.label, { marginTop: 20 }]}>Položky</Text>
+        {items.map((item, index) => (
+          <View key={item.localId} style={styles.itemRow}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemIndex}>Položka {index + 1}</Text>
+              {items.length > 1 && (
+                <Pressable onPress={() => removeItem(item.localId)} hitSlop={8} accessibilityLabel="Odstrániť položku">
+                  <Ionicons name="trash-outline" size={18} color="#c62828" />
+                </Pressable>
+              )}
+            </View>
+            <SelectField
+              label="Surovina"
+              placeholder="Vyberte surovinu"
+              emptyHint="Najprv pridajte surovinu v zozname vyššie."
+              options={ingredientOptions}
+              selectedId={item.ingredientId}
+              onSelect={(id) => updateItem(item.localId, { ingredientId: id })}
+            />
+            <Text style={styles.label}>Množstvo</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={item.quantity}
+              onChangeText={(v) => updateItem(item.localId, { quantity: v })}
+              placeholder="0"
+            />
+          </View>
+        ))}
+
+        <Pressable style={styles.addItemButton} onPress={addItem}>
+          <Text style={styles.addItemButtonText}>+ Pridať položku</Text>
+        </Pressable>
+
+        {createReceipt.error && <Text style={styles.error}>{(createReceipt.error as Error).message}</Text>}
+
+        <Pressable
+          style={[styles.button, !canSubmit && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={!canSubmit || createReceipt.isPending}
+        >
+          <Text style={styles.buttonText}>{createReceipt.isPending ? 'Ukladám...' : 'Uložiť príjemku'}</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 20, paddingBottom: 40 },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 8, marginTop: 12, textTransform: 'uppercase' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  itemRow: { backgroundColor: '#f7f7f7', borderRadius: 10, padding: 14, marginTop: 12 },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  itemIndex: { fontSize: 13, fontWeight: '600', color: '#666' },
+  addItemButton: { paddingVertical: 14, alignItems: 'center' },
+  addItemButtonText: { color: '#1a1a1a', fontWeight: '600' },
+  error: { color: '#c62828', marginTop: 12 },
+  button: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  buttonDisabled: { opacity: 0.5 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+});

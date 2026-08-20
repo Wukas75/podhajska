@@ -1,30 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, Modal, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCreateTank, useTanks, useUpdateTank, useDeactivateTank } from '../../hooks/useTanks';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import type { Tank } from '../../types/database.types';
-
-function ConfirmDeleteModal({ tank, onCancel, onConfirm }: { tank: Tank; onCancel: () => void; onConfirm: () => void }) {
-  return (
-    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.modalBackdrop} onPress={onCancel}>
-        <Pressable style={styles.confirmSheet} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.confirmTitle}>Zmazať tank</Text>
-          <Text style={styles.confirmMessage}>Naozaj chcete zmazať tank „{tank.name}"?</Text>
-          <View style={styles.confirmActions}>
-            <Pressable style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.cancelButtonText}>Zrušiť</Text>
-            </Pressable>
-            <Pressable style={styles.confirmDeleteButton} onPress={onConfirm}>
-              <Text style={styles.confirmDeleteButtonText}>Zmazať</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
 
 function TankEditRow({ tank, onCancel }: { tank: Tank; onCancel: () => void }) {
   const updateTank = useUpdateTank();
@@ -138,8 +118,9 @@ export default function TanksScreen() {
       </View>
 
       {deletingTank && (
-        <ConfirmDeleteModal
-          tank={deletingTank}
+        <ConfirmModal
+          title="Zmazať tank"
+          message={`Naozaj chcete zmazať tank „${deletingTank.name}"?`}
           onCancel={() => setDeletingTank(null)}
           onConfirm={() => {
             deactivateTank.mutate(deletingTank.id);
@@ -193,11 +174,4 @@ const styles = StyleSheet.create({
   saveButton: { backgroundColor: '#1a1a1a', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
   saveButtonText: { color: '#fff', fontWeight: '600' },
   buttonDisabled: { opacity: 0.5 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  confirmSheet: { backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '100%', maxWidth: 360 },
-  confirmTitle: { fontSize: 17, fontWeight: '700', marginBottom: 8 },
-  confirmMessage: { fontSize: 14, color: '#444', marginBottom: 20 },
-  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-  confirmDeleteButton: { backgroundColor: '#c62828', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
-  confirmDeleteButtonText: { color: '#fff', fontWeight: '600' },
 });

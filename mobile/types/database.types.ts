@@ -5,6 +5,7 @@
 export type StepType = 'temperature' | 'gravity' | 'dry_hop' | 'transfer' | 'custom';
 export type BatchStatus = 'planned' | 'active' | 'completed' | 'cancelled';
 export type BatchStepStatus = 'pending' | 'done' | 'skipped';
+export type IngredientCategory = 'malt' | 'hops' | 'yeast' | 'other';
 
 export type Profile = {
   id: string;
@@ -76,6 +77,35 @@ export type BatchStep = {
   created_at: string;
 };
 
+export type Ingredient = {
+  id: string;
+  name: string;
+  category: IngredientCategory;
+  unit: string;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type StockReceipt = {
+  id: string;
+  receipt_date: string;
+  supplier: string;
+  document_number: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type StockReceiptItem = {
+  id: string;
+  receipt_id: string;
+  ingredient_id: string;
+  quantity: number;
+  unit_price: number | null;
+  notes: string | null;
+};
+
 export type PushToken = {
   id: string;
   user_id: string;
@@ -110,11 +140,22 @@ export type Database = {
         Omit<PushToken, 'id' | 'created_at' | 'updated_at'>,
         Partial<Omit<PushToken, 'id' | 'created_at' | 'updated_at'>>
       >;
+      ingredients: TableDef<Ingredient, Omit<Ingredient, 'id' | 'created_at'>, Partial<Omit<Ingredient, 'id' | 'created_at'>>>;
+      stock_receipts: TableDef<
+        StockReceipt,
+        Omit<StockReceipt, 'id' | 'created_at'>,
+        Partial<Omit<StockReceipt, 'id' | 'created_at'>>
+      >;
+      stock_receipt_items: TableDef<StockReceiptItem, Omit<StockReceiptItem, 'id'>, Partial<Omit<StockReceiptItem, 'id'>>>;
     };
     Views: NoViews;
     Functions: {
       create_batch_from_template: {
         Args: { p_template_id: string; p_tank_id: string; p_start_date: string; p_name: string };
+        Returns: string;
+      };
+      create_stock_receipt: {
+        Args: { p_receipt_date: string; p_supplier: string; p_document_number: string | null; p_items: unknown };
         Returns: string;
       };
     };
