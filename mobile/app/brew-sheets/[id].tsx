@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   useBrewSheet,
   useUpdateBrewSheet,
+  useScaleBrewSheetIngredients,
   useAddBrewSheetIngredient,
   useUpdateBrewSheetIngredient,
   useDeleteBrewSheetIngredient,
@@ -27,6 +28,7 @@ export default function BrewSheetDetailScreen() {
   const { data, isLoading, error } = useBrewSheet(id);
   const { data: ingredients } = useIngredients();
   const updateSheet = useUpdateBrewSheet(id);
+  const scaleIngredients = useScaleBrewSheetIngredients(id);
   const addIngredient = useAddBrewSheetIngredient(id);
   const updateIngredient = useUpdateBrewSheetIngredient(id);
   const deleteIngredient = useDeleteBrewSheetIngredient(id);
@@ -55,12 +57,28 @@ export default function BrewSheetDetailScreen() {
   }
 
   function saveSheet() {
+    if (!data) return;
     const volume = Number(volumeDraft);
     if (!nameDraft.trim() || !volumeDraft.trim() || volume <= 0) return;
-    updateSheet.mutate(
-      { name: nameDraft.trim(), batchVolumeLiters: volume, notes: notesDraft.trim() || null },
-      { onSuccess: () => setIsEditingSheet(false) }
-    );
+
+    const previousVolume = data.sheet.batch_volume_liters;
+    const scale = volume / previousVolume;
+
+    function saveVolumeAndNotes() {
+      updateSheet.mutate(
+        { name: nameDraft.trim(), batchVolumeLiters: volume, notes: notesDraft.trim() || null },
+        { onSuccess: () => setIsEditingSheet(false) }
+      );
+    }
+
+    if (scale !== 1 && sheetIngredients.length > 0) {
+      scaleIngredients.mutate(
+        sheetIngredients.map((si) => ({ id: si.id, quantity: Math.round(si.quantity * scale * 1000) / 1000 })),
+        { onSuccess: saveVolumeAndNotes }
+      );
+    } else {
+      saveVolumeAndNotes();
+    }
   }
 
   return (
@@ -76,7 +94,16 @@ export default function BrewSheetDetailScreen() {
               <View style={styles.sheetEditForm}>
                 <TextInput style={styles.input} placeholder="Názov" value={nameDraft} onChangeText={setNameDraft} />
                 <Text style={styles.label}>Objem várky (litre)</Text>
-                <TextInput style={styles.input} keyboardType="numeric" value={volumeDraft} onChangeText={setVolumeDraft} />
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={volumeDraft}
+                  onChangeText={setVolumeDraft}
+                  placeholder="1000"
+                />
+                {data && sheetIngredients.length > 0 && Number(volumeDraft) !== data.sheet.batch_volume_liters && (
+                  <Text style={styles.hint}>Množstvo surovín sa prepočíta pomerne k novému objemu.</Text>
+                )}
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Poznámka (voliteľné)"
@@ -84,7 +111,9 @@ export default function BrewSheetDetailScreen() {
                   onChangeText={setNotesDraft}
                   multiline
                 />
-                {updateSheet.error && <Text style={styles.error}>{(updateSheet.error as Error).message}</Text>}
+                {(updateSheet.error || scaleIngredients.error) && (
+                  <Text style={styles.error}>{((updateSheet.error ?? scaleIngredients.error) as Error).message}</Text>
+                )}
                 <View style={styles.sheetEditActions}>
                   <Pressable style={styles.cancelButton} onPress={() => setIsEditingSheet(false)}>
                     <Text style={styles.cancelButtonText}>Zrušiť</Text>
@@ -92,9 +121,11 @@ export default function BrewSheetDetailScreen() {
                   <Pressable
                     style={[styles.saveButton, !nameDraft.trim() && styles.buttonDisabled]}
                     onPress={saveSheet}
-                    disabled={!nameDraft.trim() || updateSheet.isPending}
+                    disabled={!nameDraft.trim() || updateSheet.isPending || scaleIngredients.isPending}
                   >
-                    <Text style={styles.saveButtonText}>{updateSheet.isPending ? 'Ukladám...' : 'Uložiť'}</Text>
+                    <Text style={styles.saveButtonText}>
+                      {updateSheet.isPending || scaleIngredients.isPending ? 'Ukladám...' : 'Uložiť'}
+                    </Text>
                   </Pressable>
                 </View>
               </View>
@@ -187,6 +218,7 @@ const styles = StyleSheet.create({
   saveButtonText: { color: '#fff', fontWeight: '600' },
   buttonDisabled: { opacity: 0.5 },
   label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 8, marginTop: 4, textTransform: 'uppercase' },
+  hint: { color: '#999', fontSize: 13, fontStyle: 'italic', marginTop: -6, marginBottom: 10 },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',

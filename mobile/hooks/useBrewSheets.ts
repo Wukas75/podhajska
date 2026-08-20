@@ -98,6 +98,22 @@ export function useUpdateBrewSheet(brewSheetId: string) {
   });
 }
 
+export function useScaleBrewSheetIngredients(brewSheetId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (items: { id: string; quantity: number }[]) => {
+      const results = await Promise.all(
+        items.map((item) => supabase.from('brew_sheet_ingredients').update({ quantity: item.quantity }).eq('id', item.id))
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brewSheets', brewSheetId] });
+    },
+  });
+}
+
 export function useAddBrewSheetIngredient(brewSheetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
