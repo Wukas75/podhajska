@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns';
 import { useIngredients } from '../../hooks/useIngredients';
-import { useCreateStockReceipt } from '../../hooks/useStockReceipts';
+import { useCreateStockReceipt, useSuppliers } from '../../hooks/useStockReceipts';
 import { SelectField } from '../../components/SelectField';
 import type { IngredientCategory } from '../../types/database.types';
 
@@ -22,6 +22,7 @@ type DraftItem = { localId: number; ingredientId: string | null; quantity: strin
 
 export default function NewStockReceiptScreen() {
   const { data: ingredients } = useIngredients();
+  const { data: suppliers } = useSuppliers();
   const createReceipt = useCreateStockReceipt();
 
   const [receiptDate, setReceiptDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -73,6 +74,17 @@ export default function NewStockReceiptScreen() {
 
         <Text style={styles.label}>Dodávateľ</Text>
         <TextInput style={styles.input} value={supplier} onChangeText={setSupplier} placeholder="Názov dodávateľa" />
+        {suppliers && suppliers.length > 0 && (
+          <View style={styles.supplierChipRow}>
+            {suppliers
+              .filter((s) => s.toLowerCase().includes(supplier.trim().toLowerCase()) && s !== supplier.trim())
+              .map((s) => (
+                <Pressable key={s} style={styles.supplierChip} onPress={() => setSupplier(s)}>
+                  <Text style={styles.supplierChipText}>{s}</Text>
+                </Pressable>
+              ))}
+          </View>
+        )}
 
         <Text style={styles.label}>Číslo dokladu (voliteľné)</Text>
         <TextInput style={styles.input} value={documentNumber} onChangeText={setDocumentNumber} placeholder="napr. FA-2026-001" />
@@ -138,6 +150,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
   },
+  supplierChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  supplierChip: { borderWidth: 1, borderColor: '#ddd', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5 },
+  supplierChipText: { fontSize: 13, color: '#333' },
   itemRow: { backgroundColor: '#f7f7f7', borderRadius: 10, padding: 14, marginTop: 12 },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   itemIndex: { fontSize: 13, fontWeight: '600', color: '#666' },

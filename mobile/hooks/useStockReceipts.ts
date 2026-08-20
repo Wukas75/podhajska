@@ -27,6 +27,17 @@ export function useStockReceipts() {
   });
 }
 
+export function useSuppliers() {
+  return useQuery({
+    queryKey: ['stockReceipts', 'suppliers'],
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase.from('stock_receipts').select('supplier').order('supplier');
+      if (error) throw error;
+      return Array.from(new Set(data.map((r) => r.supplier))).sort((a, b) => a.localeCompare(b));
+    },
+  });
+}
+
 export function useCreateStockReceipt() {
   const queryClient = useQueryClient();
   return useMutation({
