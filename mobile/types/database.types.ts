@@ -139,6 +139,10 @@ export type BrewSheet = {
   batch_volume_liters: number;
   batch_number: number;
   brew_date: string;
+  final_volume_liters: number | null;
+  og: number | null;
+  sg: number | null;
+  abv_percent: number | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;

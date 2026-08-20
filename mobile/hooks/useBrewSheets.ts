@@ -72,6 +72,10 @@ export function useCreateBrewSheet() {
           batch_volume_liters: input.batchVolumeLiters,
           batch_number: input.batchNumber,
           brew_date: input.brewDate,
+          final_volume_liters: null,
+          og: null,
+          sg: null,
+          abv_percent: null,
           notes: input.notes,
           created_by: user?.id ?? null,
         })
@@ -131,6 +135,33 @@ export function useUpdateBrewSheet(brewSheetId: string) {
           batch_number: patch.batchNumber,
           brew_date: patch.brewDate,
           notes: patch.notes,
+        })
+        .eq('id', brewSheetId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brewSheets', brewSheetId] });
+      queryClient.invalidateQueries({ queryKey: ['brewSheets'] });
+    },
+  });
+}
+
+export function useUpdateBrewSheetResults(brewSheetId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: {
+      finalVolumeLiters: number | null;
+      og: number | null;
+      sg: number | null;
+      abvPercent: number | null;
+    }) => {
+      const { error } = await supabase
+        .from('brew_sheets')
+        .update({
+          final_volume_liters: patch.finalVolumeLiters,
+          og: patch.og,
+          sg: patch.sg,
+          abv_percent: patch.abvPercent,
         })
         .eq('id', brewSheetId);
       if (error) throw error;

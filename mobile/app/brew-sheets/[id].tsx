@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns';
 import {
   useBrewSheet,
   useUpdateBrewSheet,
+  useUpdateBrewSheetResults,
   useScaleBrewSheetIngredients,
   useAddBrewSheetIngredient,
   useUpdateBrewSheetIngredient,
@@ -29,6 +30,7 @@ export default function BrewSheetDetailScreen() {
   const { data, isLoading, error } = useBrewSheet(id);
   const { data: ingredients } = useIngredients();
   const updateSheet = useUpdateBrewSheet(id);
+  const updateResults = useUpdateBrewSheetResults(id);
   const scaleIngredients = useScaleBrewSheetIngredients(id);
   const addIngredient = useAddBrewSheetIngredient(id);
   const updateIngredient = useUpdateBrewSheetIngredient(id);
@@ -42,6 +44,12 @@ export default function BrewSheetDetailScreen() {
   const [notesDraft, setNotesDraft] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
+
+  const [isEditingResults, setIsEditingResults] = useState(false);
+  const [finalVolumeDraft, setFinalVolumeDraft] = useState('');
+  const [ogDraft, setOgDraft] = useState('');
+  const [sgDraft, setSgDraft] = useState('');
+  const [abvDraft, setAbvDraft] = useState('');
 
   const sheetIngredients = data?.ingredients ?? [];
   const totalPriceSum = sheetIngredients.reduce((sum, it) => sum + (it.total_price ?? 0), 0);
@@ -93,6 +101,27 @@ export default function BrewSheetDetailScreen() {
     } else {
       saveRest();
     }
+  }
+
+  function startEditingResults() {
+    if (!data) return;
+    setFinalVolumeDraft(data.sheet.final_volume_liters != null ? String(data.sheet.final_volume_liters) : '');
+    setOgDraft(data.sheet.og != null ? String(data.sheet.og) : '');
+    setSgDraft(data.sheet.sg != null ? String(data.sheet.sg) : '');
+    setAbvDraft(data.sheet.abv_percent != null ? String(data.sheet.abv_percent) : '');
+    setIsEditingResults(true);
+  }
+
+  function saveResults() {
+    updateResults.mutate(
+      {
+        finalVolumeLiters: finalVolumeDraft.trim() ? Number(finalVolumeDraft) : null,
+        og: ogDraft.trim() ? Number(ogDraft) : null,
+        sg: sgDraft.trim() ? Number(sgDraft) : null,
+        abvPercent: abvDraft.trim() ? Number(abvDraft) : null,
+      },
+      { onSuccess: () => setIsEditingResults(false) }
+    );
   }
 
   return (
@@ -165,6 +194,65 @@ export default function BrewSheetDetailScreen() {
                   {data.sheet.notes ? <Text style={styles.description}>{data.sheet.notes}</Text> : null}
                 </View>
                 <Pressable onPress={startEditingSheet} hitSlop={8} accessibilityLabel="Upraviť varný list">
+                  <Ionicons name="create-outline" size={20} color="#333" />
+                </Pressable>
+              </View>
+            )}
+
+            {isEditingResults ? (
+              <View style={styles.resultsEditForm}>
+                <Text style={styles.sectionTitle}>Výsledky várky</Text>
+                <View style={styles.row}>
+                  <View style={styles.col}>
+                    <Text style={styles.label}>Finálny objem (l)</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={finalVolumeDraft} onChangeText={setFinalVolumeDraft} />
+                  </View>
+                  <View style={styles.col}>
+                    <Text style={styles.label}>OG</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={ogDraft} onChangeText={setOgDraft} />
+                  </View>
+                </View>
+                <View style={styles.row}>
+                  <View style={styles.col}>
+                    <Text style={styles.label}>SG</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={sgDraft} onChangeText={setSgDraft} />
+                  </View>
+                  <View style={styles.col}>
+                    <Text style={styles.label}>Alkohol (%)</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={abvDraft} onChangeText={setAbvDraft} />
+                  </View>
+                </View>
+                {updateResults.error && <Text style={styles.error}>{(updateResults.error as Error).message}</Text>}
+                <View style={styles.sheetEditActions}>
+                  <Pressable style={styles.cancelButton} onPress={() => setIsEditingResults(false)}>
+                    <Text style={styles.cancelButtonText}>Zrušiť</Text>
+                  </Pressable>
+                  <Pressable style={styles.saveButton} onPress={saveResults} disabled={updateResults.isPending}>
+                    <Text style={styles.saveButtonText}>{updateResults.isPending ? 'Ukladám...' : 'Uložiť'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.resultsHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sectionTitle}>Výsledky várky</Text>
+                  {data.sheet.final_volume_liters == null &&
+                  data.sheet.og == null &&
+                  data.sheet.sg == null &&
+                  data.sheet.abv_percent == null ? (
+                    <Text style={styles.empty}>Zatiaľ nezadané.</Text>
+                  ) : (
+                    <View style={styles.resultsGrid}>
+                      {data.sheet.final_volume_liters != null && (
+                        <Text style={styles.resultItem}>Finálny objem: {data.sheet.final_volume_liters} l</Text>
+                      )}
+                      {data.sheet.og != null && <Text style={styles.resultItem}>OG: {data.sheet.og}</Text>}
+                      {data.sheet.sg != null && <Text style={styles.resultItem}>SG: {data.sheet.sg}</Text>}
+                      {data.sheet.abv_percent != null && <Text style={styles.resultItem}>Alkohol: {data.sheet.abv_percent} %</Text>}
+                    </View>
+                  )}
+                </View>
+                <Pressable onPress={startEditingResults} hitSlop={8} accessibilityLabel="Upraviť výsledky várky">
                   <Ionicons name="create-outline" size={20} color="#333" />
                 </Pressable>
               </View>
@@ -245,6 +333,10 @@ const styles = StyleSheet.create({
   volume: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 4 },
   description: { fontSize: 14, color: '#888' },
   sheetEditForm: { marginBottom: 16 },
+  resultsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 8, marginBottom: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
+  resultsEditForm: { marginTop: 8, marginBottom: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
+  resultsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  resultItem: { fontSize: 14, color: '#333' },
   sheetEditActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   cancelButton: { paddingVertical: 10, paddingHorizontal: 14 },
   cancelButtonText: { color: '#666', fontWeight: '500' },
