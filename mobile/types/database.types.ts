@@ -52,6 +52,7 @@ export type Batch = {
   template_id: string | null;
   start_date: string;
   status: BatchStatus;
+  volume_liters: number | null;
   created_by: string | null;
   created_at: string;
 };
@@ -246,7 +247,13 @@ export type Database = {
     Views: NoViews;
     Functions: {
       create_batch_from_template: {
-        Args: { p_template_id: string; p_tank_id: string; p_start_date: string; p_name: string };
+        Args: {
+          p_template_id: string;
+          p_tank_id: string;
+          p_start_date: string;
+          p_name: string;
+          p_volume_liters?: number | null;
+        };
         Returns: string;
       };
       create_stock_receipt: {

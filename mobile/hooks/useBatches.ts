@@ -38,7 +38,13 @@ export function useBatch(batchId: string | undefined) {
 export function useUpdateBatch(batchId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (patch: { name?: string; tank_id?: string | null; start_date?: string; status?: BatchStatus }) => {
+    mutationFn: async (patch: {
+      name?: string;
+      tank_id?: string | null;
+      start_date?: string;
+      status?: BatchStatus;
+      volume_liters?: number | null;
+    }) => {
       const { error } = await supabase.from('batches').update(patch).eq('id', batchId);
       if (error) throw error;
     },
@@ -52,12 +58,13 @@ export function useUpdateBatch(batchId: string) {
 export function useCreateBatchFromTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { templateId: string; tankId: string; startDate: string; name: string }) => {
+    mutationFn: async (input: { templateId: string; tankId: string; startDate: string; name: string; volumeLiters?: number | null }) => {
       const { data, error } = await supabase.rpc('create_batch_from_template', {
         p_template_id: input.templateId,
         p_tank_id: input.tankId,
         p_start_date: input.startDate,
         p_name: input.name,
+        p_volume_liters: input.volumeLiters ?? null,
       });
       if (error) throw error;
       return data as string;

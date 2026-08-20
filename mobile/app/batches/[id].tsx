@@ -47,6 +47,7 @@ export default function BatchDetailScreen() {
   const [tankIdDraft, setTankIdDraft] = useState<string | null>(null);
   const [startDateDraft, setStartDateDraft] = useState('');
   const [statusDraft, setStatusDraft] = useState<BatchStatus>('active');
+  const [volumeDraft, setVolumeDraft] = useState('');
 
   useRealtimeBatchSteps();
 
@@ -58,13 +59,20 @@ export default function BatchDetailScreen() {
     setTankIdDraft(batch.tank_id);
     setStartDateDraft(batch.start_date);
     setStatusDraft(batch.status);
+    setVolumeDraft(batch.volume_liters != null ? String(batch.volume_liters) : '');
     setIsEditingBatch(true);
   }
 
   function saveBatch() {
     if (!nameDraft.trim() || !startDateDraft.trim()) return;
     updateBatch.mutate(
-      { name: nameDraft.trim(), tank_id: tankIdDraft, start_date: startDateDraft.trim(), status: statusDraft },
+      {
+        name: nameDraft.trim(),
+        tank_id: tankIdDraft,
+        start_date: startDateDraft.trim(),
+        status: statusDraft,
+        volume_liters: volumeDraft.trim() ? Number(volumeDraft) : null,
+      },
       { onSuccess: () => setIsEditingBatch(false) }
     );
   }
@@ -76,7 +84,10 @@ export default function BatchDetailScreen() {
         {batch && !isEditingBatch && (
           <View style={styles.header}>
             <View>
-              <Text style={styles.tank}>{batch.tank?.name ?? 'Bez tanku'}</Text>
+              <Text style={styles.tank}>
+                {batch.tank?.name ?? 'Bez tanku'}
+                {batch.volume_liters != null ? ` · ${batch.volume_liters} l` : ''}
+              </Text>
               <Text style={styles.status}>{batch.status}</Text>
             </View>
             <Pressable onPress={startEditingBatch} hitSlop={8} accessibilityLabel="Upraviť šaržu">
@@ -105,6 +116,9 @@ export default function BatchDetailScreen() {
 
             <Text style={styles.label}>Dátum začiatku (RRRR-MM-DD)</Text>
             <TextInput style={styles.input} value={startDateDraft} onChangeText={setStartDateDraft} />
+
+            <Text style={styles.label}>Objem (litre)</Text>
+            <TextInput style={styles.input} keyboardType="numeric" value={volumeDraft} onChangeText={setVolumeDraft} />
 
             <SelectField
               label="Stav"
