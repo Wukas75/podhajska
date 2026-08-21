@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format, parseISO } from 'date-fns';
+import * as Print from 'expo-print';
+import { buildBrewSheetHtml } from '../../lib/brewSheetPrint';
 import {
   useBrewSheet,
   useUpdateBrewSheet,
@@ -69,6 +71,7 @@ export default function BrewSheetDetailScreen() {
   const [ogDraft, setOgDraft] = useState('');
   const [sgDraft, setSgDraft] = useState('');
   const [abvDraft, setAbvDraft] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const sheetIngredients = data?.ingredients ?? [];
   const totalPriceSum = sheetIngredients.reduce((sum, it) => sum + (it.total_price ?? 0), 0);
@@ -143,6 +146,19 @@ export default function BrewSheetDetailScreen() {
     );
   }
 
+  async function handlePrint() {
+    if (!data) return;
+    setIsPrinting(true);
+    try {
+      const html = buildBrewSheetHtml(data.sheet, sheetIngredients, processStepRows);
+      await Print.printAsync({ html });
+    } catch {
+      // user closing the print dialog also rejects on some platforms - nothing to surface
+    } finally {
+      setIsPrinting(false);
+    }
+  }
+
   function moveProcessStep(row: { id: string; sort_order: number }, direction: -1 | 1) {
     const index = processStepRows.findIndex((r) => r.id === row.id);
     const swapWith = processStepRows[index + direction];
@@ -155,7 +171,18 @@ export default function BrewSheetDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: data?.sheet.name ?? 'Varný list', headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: data?.sheet.name ?? 'Varný list',
+          headerShown: true,
+          headerRight: () =>
+            data ? (
+              <Pressable onPress={handlePrint} disabled={isPrinting} hitSlop={8} accessibilityLabel="Tlačiť varný list">
+                <Ionicons name="print-outline" size={22} color={isPrinting ? '#ccc' : '#1a1a1a'} />
+              </Pressable>
+            ) : null,
+        }}
+      />
       <View style={styles.content}>
         {isLoading && <ActivityIndicator style={{ marginTop: 20 }} />}
         {error && <Text style={styles.error}>{(error as Error).message}</Text>}
