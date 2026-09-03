@@ -32,6 +32,19 @@ if (freshDb) {
   sqlite.exec(readFileSync(join(ROOT, 'migrations', '0002_seed.sql'), 'utf8'))
   console.log('• D1: vytvorená lokálna DB + seed')
 }
+// Doťahnutie neskorších migrácií na už existujúcu lokálnu DB (dev-node nemá migračný runner).
+try {
+  sqlite.exec("ALTER TABLE gallery_images ADD COLUMN category TEXT NOT NULL DEFAULT 'exterier'")
+  console.log('• D1: pridaný stĺpec gallery_images.category')
+} catch {
+  /* stĺpec už existuje */
+}
+try {
+  sqlite.exec("ALTER TABLE articles ADD COLUMN section TEXT NOT NULL DEFAULT 'blog'")
+  console.log('• D1: pridaný stĺpec articles.section')
+} catch {
+  /* stĺpec už existuje */
+}
 function tableExists(name) {
   try {
     return !!sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name)

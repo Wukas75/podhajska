@@ -88,8 +88,17 @@ npx wrangler d1 execute podhajska --remote --command "INSERT INTO admin_users ..
   po uložení sa uchovajú v `settings.texts` a aplikujú na verejnej stránke.
 - **Články** — WYSIWYG (`wysiwyg.js`), server HTML sanitizuje (allowlist tagov).
   Na webe sa otvárajú ako overlay, deep-link `#clanok/<slug>`.
-- **Galéria** — upload do R2 (`/img/<key>`), radenie ťahaním alebo ▲▼, alt text, mazanie.
-  Statické seed fotky ukazujú na `/assets/img/…`.
+  Každý článok patrí do sekcie **Blog** alebo **Okolie a aktivity** (stĺpec `articles.section`);
+  v admin okne „Články" sú na to prepínače, na webe sa vykreslia do príslušnej sekcie
+  (`#article-grid` resp. `#okolie-grid`). Existujúca produkčná D1 sa doplní
+  `migrations/0004_articles_section.sql`.
+- **Galéria** — upload do R2 (`/img/<key>`), radenie ťahaním alebo ▲▼, alt text, kategória, mazanie.
+  Každá fotka patrí do kategórie **Štúdio / Wellness / Exteriér / Články** (stĺpec `gallery_images.category`);
+  na verejnej stránke sa nad mriežkou zobrazí filter Všetky / Štúdio 1,2,3 / Wellness / Exteriér.
+  Kategória **Články** je úložisko fotiek, ktoré sa vkladajú do článkov (výber „Vybrať z galérie"
+  v editore článku aj v hero editore) – vo verejnej galérii sa **nezobrazujú** (`/api/site` ich vynecháva).
+  Statické seed fotky (prevzaté z `podhajska.net/galeria/`) sú v `public/assets/img/gallery/`,
+  stiahne ich `npm run assets`. Existujúca produkčná D1 sa doplní `migrations/0003_gallery_category.sql`.
 
 ## Štruktúra
 

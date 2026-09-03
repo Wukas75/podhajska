@@ -37,12 +37,43 @@
   }
 
   /* ---- galéria + lightbox ---- */
-  var gallery = [];
+  var allGallery = [];   // celý zoznam z API
+  var gallery = [];      // aktuálne zobrazený (filtrovaný) zoznam – po ňom chodí lightbox
+  var galleryCat = 'all';
   function renderGallery(items) {
-    gallery = items || [];
+    // fotky kategórie 'clanky' sú len na vkladanie do článkov – vo verejnej galérii sa nezobrazujú
+    allGallery = (items || []).filter(function (g) { return g.category !== 'clanky'; });
     var grid = document.getElementById('gallery-grid');
     if (!grid) return;
-    if (!gallery.length) { grid.innerHTML = '<p class="muted">Galéria je zatiaľ prázdna.</p>'; return; }
+
+    var bar = document.getElementById('gallery-filter');
+    if (bar) {
+      var cats = {};
+      allGallery.forEach(function (g) { if (g.category) cats[g.category] = 1; });
+      var multi = Object.keys(cats).length > 1;
+      bar.hidden = !multi;
+      if (!multi) galleryCat = 'all';
+      if (!bar.dataset.bound) {
+        bar.dataset.bound = '1';
+        bar.addEventListener('click', function (e) {
+          var btn = e.target.closest('button[data-cat]');
+          if (!btn) return;
+          galleryCat = btn.dataset.cat;
+          $$('button', bar).forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+          paintGallery();
+        });
+      }
+      $$('button', bar).forEach(function (b) { b.classList.toggle('is-active', b.dataset.cat === galleryCat); });
+    }
+    paintGallery();
+  }
+  function paintGallery() {
+    var grid = document.getElementById('gallery-grid');
+    if (!grid) return;
+    gallery = galleryCat === 'all'
+      ? allGallery.slice()
+      : allGallery.filter(function (g) { return g.category === galleryCat; });
+    if (!gallery.length) { grid.innerHTML = '<p class="muted">V tejto kategórii zatiaľ nie sú fotky.</p>'; return; }
     grid.innerHTML = '';
     gallery.forEach(function (img, i) {
       var b = document.createElement('button');
@@ -96,26 +127,39 @@
     if (isNaN(d)) return s;
     return d.toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' });
   }
-  function renderArticles(items) {
-    var grid = document.getElementById('article-grid');
+  function articleCard(a) {
+    var card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'article-card';
+    card.setAttribute('data-slug', a.slug);
+    card.innerHTML =
+      '<div class="article-card__media">' +
+      (a.cover_url ? '<img loading="lazy" src="' + esc(a.cover_url) + '" alt="">' : '') +
+      '</div>' +
+      '<div class="article-card__body">' +
+      '<time>' + fmtDate(a.published_at) + '</time>' +
+      '<h3>' + esc(a.title) + '</h3>' +
+      '<p>' + esc(a.excerpt || '') + '</p>' +
+      '</div>';
+    card.addEventListener('click', function () { openArticle(a.slug); });
+    return card;
+  }
+  function renderArticleGrid(gridId, items, emptyMsg) {
+    var grid = document.getElementById(gridId);
     if (!grid) return;
-    if (!items || !items.length) { grid.innerHTML = '<p class="muted">Zatiaľ tu nie sú žiadne články.</p>'; return; }
     grid.innerHTML = '';
-    items.forEach(function (a) {
-      var card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'article-card';
-      card.setAttribute('data-slug', a.slug);
-      card.innerHTML =
-        (a.cover_url ? '<img loading="lazy" src="' + a.cover_url + '" alt="">' : '') +
-        '<div class="article-card__body">' +
-        '<time>' + fmtDate(a.published_at) + '</time>' +
-        '<h3>' + esc(a.title) + '</h3>' +
-        '<p>' + esc(a.excerpt || '') + '</p>' +
-        '</div>';
-      card.addEventListener('click', function () { openArticle(a.slug); });
-      grid.appendChild(card);
-    });
+    if (!items.length) {
+      grid.hidden = !emptyMsg;
+      if (emptyMsg) grid.innerHTML = '<p class="muted">' + emptyMsg + '</p>';
+      return;
+    }
+    grid.hidden = false;
+    items.forEach(function (a) { grid.appendChild(articleCard(a)); });
+  }
+  function renderArticles(items) {
+    items = items || [];
+    renderArticleGrid('article-grid', items.filter(function (a) { return (a.section || 'blog') === 'blog'; }), 'Zatiaľ tu nie sú žiadne články.');
+    renderArticleGrid('okolie-grid', items.filter(function (a) { return a.section === 'okolie'; }), null);
   }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {

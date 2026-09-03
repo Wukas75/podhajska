@@ -122,6 +122,15 @@ function sanitizeHtml(html) {
 
 const bad = (c, msg, code = 400) => c.json({ error: msg }, code)
 
+/* Kategórie fotogalérie – zhodné s filtrom na verejnej stránke. */
+// 'clanky' = fotky určené len na vkladanie do článkov; nezobrazujú sa vo verejnej galérii.
+const GALLERY_CATS = new Set(['studio', 'wellness', 'exterier', 'clanky'])
+const normCat = (v) => (GALLERY_CATS.has(String(v || '')) ? String(v) : 'exterier')
+
+/* Sekcie článkov – 'blog' alebo 'okolie' (Okolie a aktivity). */
+const ARTICLE_SECTIONS = new Set(['blog', 'okolie'])
+const normSection = (v) => (ARTICLE_SECTIONS.has(String(v || '')) ? String(v) : 'blog')
+
 /* ---------- auth middleware ---------- */
 
 async function requireAuth(c, next) {
@@ -139,10 +148,10 @@ app.get('/site', async (c) => {
     db.prepare('SELECT key, value FROM settings').all(),
     db
       .prepare(
-        "SELECT id, slug, title, excerpt, cover_url, published_at FROM articles WHERE status='published' ORDER BY COALESCE(published_at, created_at) DESC, id DESC",
+        "SELECT id, slug, title, excerpt, cover_url, section, published_at FROM articles WHERE status='published' ORDER BY COALESCE(published_at, created_at) DESC, id DESC",
       )
       .all(),
-    db.prepare('SELECT id, url, alt FROM gallery_images ORDER BY sort, id').all(),
+    db.prepare("SELECT id, url, alt, category FROM gallery_images WHERE category != 'clanky' ORDER BY sort, id").all(),
   ])
   const s = Object.fromEntries((settings.results || []).map((r) => [r.key, r.value]))
   return c.json({
@@ -245,7 +254,7 @@ app.put('/admin/theme', async (c) => {
 
 app.get('/admin/articles', async (c) => {
   const r = await c.env.DB.prepare(
-    'SELECT id, slug, title, excerpt, cover_url, status, published_at, sort, updated_at FROM articles ORDER BY sort DESC, id DESC',
+    'SELECT id, slug, title, excerpt, cover_url, section, status, published_at, sort, updated_at FROM articles ORDER BY sort DESC, id DESC',
   ).all()
   return c.json(r.results || [])
 })
@@ -275,9 +284,9 @@ app.post('/admin/articles', async (c) => {
   const publishedAt = status === 'published' ? b.published_at || new Date().toISOString().slice(0, 19).replace('T', ' ') : null
   const res = await db
     .prepare(
-      "INSERT INTO articles (slug, title, excerpt, body_html, cover_url, status, published_at, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+      "INSERT INTO articles (slug, title, excerpt, body_html, cover_url, section, status, published_at, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
     )
-    .bind(slug, b.title, b.excerpt || '', sanitizeHtml(b.body_html), b.cover_url || '', status, publishedAt, Number(b.sort) || 0)
+    .bind(slug, b.title, b.excerpt || '', sanitizeHtml(b.body_html), b.cover_url || '', normSection(b.section), status, publishedAt, Number(b.sort) || 0)
     .first()
   return c.json({ ok: true, id: res.id, slug })
 })
@@ -290,13 +299,14 @@ app.put('/admin/articles/:id', async (c) => {
   if (!cur) return bad(c, 'Neexistuje', 404)
   const title = b.title ?? cur.title
   const slug = b.slug ? await uniqueSlug(db, slugify(b.slug), id) : cur.slug
+  const section = ARTICLE_SECTIONS.has(String(b.section)) ? String(b.section) : cur.section
   const status = b.status === 'published' || b.status === 'draft' ? b.status : cur.status
   let publishedAt = cur.published_at
   if (status === 'published' && !publishedAt) publishedAt = new Date().toISOString().slice(0, 19).replace('T', ' ')
   if (status === 'draft') publishedAt = b.keep_date ? cur.published_at : null
   await db
     .prepare(
-      "UPDATE articles SET slug=?, title=?, excerpt=?, body_html=?, cover_url=?, status=?, published_at=?, sort=?, updated_at=datetime('now') WHERE id=?",
+      "UPDATE articles SET slug=?, title=?, excerpt=?, body_html=?, cover_url=?, section=?, status=?, published_at=?, sort=?, updated_at=datetime('now') WHERE id=?",
     )
     .bind(
       slug,
@@ -304,6 +314,7 @@ app.put('/admin/articles/:id', async (c) => {
       b.excerpt ?? cur.excerpt,
       b.body_html != null ? sanitizeHtml(b.body_html) : cur.body_html,
       b.cover_url ?? cur.cover_url,
+      section,
       status,
       publishedAt,
       b.sort != null ? Number(b.sort) : cur.sort,
@@ -321,7 +332,7 @@ app.delete('/admin/articles/:id', async (c) => {
 /* ---- galéria ---- */
 
 app.get('/admin/gallery', async (c) => {
-  const r = await c.env.DB.prepare('SELECT id, url, r2_key, alt, sort FROM gallery_images ORDER BY sort, id').all()
+  const r = await c.env.DB.prepare('SELECT id, url, r2_key, alt, category, sort FROM gallery_images ORDER BY sort, id').all()
   return c.json(r.results || [])
 })
 
@@ -336,9 +347,9 @@ app.post('/admin/gallery', async (c) => {
   await c.env.R2.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } })
   const max = await c.env.DB.prepare('SELECT COALESCE(MAX(sort), 0) AS m FROM gallery_images').first()
   const res = await c.env.DB.prepare(
-    'INSERT INTO gallery_images (url, r2_key, alt, sort) VALUES (?, ?, ?, ?) RETURNING id',
+    'INSERT INTO gallery_images (url, r2_key, alt, category, sort) VALUES (?, ?, ?, ?, ?) RETURNING id',
   )
-    .bind(`/img/${key}`, key, String(form.get('alt') || ''), (max.m || 0) + 10)
+    .bind(`/img/${key}`, key, String(form.get('alt') || ''), normCat(form.get('category')), (max.m || 0) + 10)
     .first()
   return c.json({ ok: true, id: res.id, url: `/img/${key}` })
 })
@@ -353,8 +364,11 @@ app.put('/admin/gallery/reorder', async (c) => {
 
 app.put('/admin/gallery/:id', async (c) => {
   const b = await c.req.json().catch(() => ({}))
-  await c.env.DB.prepare('UPDATE gallery_images SET alt = COALESCE(?, alt), sort = COALESCE(?, sort) WHERE id = ?')
-    .bind(b.alt ?? null, b.sort != null ? Number(b.sort) : null, c.req.param('id'))
+  const cat = GALLERY_CATS.has(String(b.category)) ? String(b.category) : null
+  await c.env.DB.prepare(
+    'UPDATE gallery_images SET alt = COALESCE(?, alt), category = COALESCE(?, category), sort = COALESCE(?, sort) WHERE id = ?',
+  )
+    .bind(b.alt ?? null, cat, b.sort != null ? Number(b.sort) : null, c.req.param('id'))
     .run()
   return c.json({ ok: true })
 })

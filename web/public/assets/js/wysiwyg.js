@@ -31,6 +31,18 @@
     bar.appendChild(btn('H2', 'Nadpis 2', function () { cmd('formatBlock', 'H2'); }));
     bar.appendChild(btn('H3', 'Nadpis 3', function () { cmd('formatBlock', 'H3'); }));
     bar.appendChild(btn('¶', 'Odsek', function () { cmd('formatBlock', 'P'); }));
+    bar.appendChild(btn('+ Text', 'Vložiť nové textové pole (prázdny odsek)', function () {
+      area.focus();
+      var sel = window.getSelection();
+      if (!sel.rangeCount || !area.contains(sel.anchorNode)) {
+        var end = document.createRange();
+        end.selectNodeContents(area);
+        end.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(end);
+      }
+      document.execCommand('insertHTML', false, '<p><br></p>');
+    }));
     bar.appendChild(btn('• Zoznam', 'Odrážky', function () { cmd('insertUnorderedList'); }));
     bar.appendChild(btn('1. Zoznam', 'Číslovaný zoznam', function () { cmd('insertOrderedList'); }));
     bar.appendChild(btn('„ "', 'Citát', function () { cmd('formatBlock', 'BLOCKQUOTE'); }));

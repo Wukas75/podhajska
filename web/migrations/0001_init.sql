@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Články (blog). Na webe sa otvárajú ako overlay (#clanok/<slug>).
+-- Články. Na webe sa otvárajú ako overlay (#clanok/<slug>).
+--   section : do ktorej sekcie článok patrí – 'blog' alebo 'okolie' (Okolie a aktivity)
 CREATE TABLE IF NOT EXISTS articles (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   slug         TEXT NOT NULL UNIQUE,
@@ -32,13 +33,14 @@ CREATE TABLE IF NOT EXISTS articles (
   excerpt      TEXT NOT NULL DEFAULT '',
   body_html    TEXT NOT NULL DEFAULT '',   -- sanitizované na serveri
   cover_url    TEXT NOT NULL DEFAULT '',
+  section      TEXT NOT NULL DEFAULT 'blog' CHECK (section IN ('blog','okolie')),
   status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published')),
   published_at TEXT,
   sort         INTEGER NOT NULL DEFAULT 0,
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_articles_status ON articles (status, published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_articles_status ON articles (section, status, published_at DESC);
 
 -- Fotogaléria (jeden plochý zoznam).
 --   url    : "/assets/img/<súbor>" (statické, dodané) alebo "/img/<r2_key>" (nahraté adminom)
@@ -48,6 +50,8 @@ CREATE TABLE IF NOT EXISTS gallery_images (
   url        TEXT NOT NULL,
   r2_key     TEXT,
   alt        TEXT NOT NULL DEFAULT '',
+  category   TEXT NOT NULL DEFAULT 'exterier'
+             CHECK (category IN ('studio','wellness','exterier','clanky')),
   sort       INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
