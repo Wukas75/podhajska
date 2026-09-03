@@ -1,0 +1,8 @@
+# Skopíruj na `.dev.vars` pre lokálny `wrangler pages dev`.
+# V produkcii použi `npx wrangler pages secret put <MENO>`.
+
+# Tajný kľúč na podpis session cookie (min. 32 náhodných znakov).
+SESSION_SECRET="vygeneruj-nahodny-retazec-min-32-znakov"
+
+# Jednorazový token pre POST /api/setup (vytvorenie prvého admina).
+SETUP_TOKEN="tajny-setup-token"

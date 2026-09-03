@@ -1,0 +1,32 @@
+/* Predvolená téma – hodnoty prepíše CSS editor (settings.theme_css vložený do
+   <style id="pod-theme-overrides">). Slidre/inputy v admine menia práve tieto premenné. */
+:root {
+  /* farby */
+  --pod-accent: #1f7a8c;
+  --pod-accent-dark: #14566a;
+  --pod-bg: #ffffff;
+  --pod-surface: #f3f7f8;
+  --pod-text: #33403f;
+  --pod-heading: #1b2a2b;
+  --pod-muted: #6b7b7a;
+  --pod-border: #e4ebec;
+  --pod-on-accent: #ffffff;
+
+  /* typografia */
+  --pod-font-heading: "Playfair Display", Georgia, "Times New Roman", serif;
+  --pod-font-body: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --pod-fs-base: 17px;
+  --pod-fs-h1: 46px;
+  --pod-fs-h2: 31px;
+
+  /* rozostupy a tvar */
+  --pod-section-pad-y: 88px;
+  --pod-radius: 14px;
+  --pod-btn-radius: 999px;
+  --pod-container: 1180px;
+
+  /* hero */
+  --pod-hero-min-h: 84vh;
+  --pod-hero-overlay: linear-gradient(to top, rgba(13, 43, 51, 0.74) 0%, rgba(13, 43, 51, 0.34) 55%, rgba(13, 43, 51, 0.5) 100%);
+  --pod-hero-image: url("/assets/img/bazen-trysky.jpg");
+}

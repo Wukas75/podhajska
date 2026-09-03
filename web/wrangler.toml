@@ -1,0 +1,21 @@
+name = "podhajska"
+pages_build_output_dir = "public"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 databáza – vytvor cez `npx wrangler d1 create podhajska` a doplň database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "podhajska"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# R2 bucket na fotky nahraté adminom – `npx wrangler r2 bucket create podhajska-media`
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "podhajska-media"
+
+# Nezmyselné hodnoty len pre `wrangler pages dev`. V produkcii nastav cez
+# `npx wrangler pages secret put SESSION_SECRET` a `... SETUP_TOKEN`.
+[vars]
+SESSION_SECRET = "dev-only-change-me"
+SETUP_TOKEN = "dev-setup-token"
