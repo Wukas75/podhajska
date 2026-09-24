@@ -1,0 +1,28 @@
+services:
+  db:
+    image: mysql:8.4
+    environment: {MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: pod, MYSQL_USER: pod, MYSQL_PASSWORD: pod}
+    volumes: ["./initdb-empty:/docker-entrypoint-initdb.d:ro"]
+  web:
+    build: .
+    ports: ["8088:80"]
+    depends_on: [db]
+    volumes:
+      # public/ po súboroch, NIE celý priečinok: vnorené file-mounty do bind-mountu
+      # vytvárali v public/ prázdne .htaccess/index.php/ics.php/install.php (deploy ich nahral)
+      - "../../public/assets:/var/www/html/assets"
+      - "../../public/index.html:/var/www/html/index.html"
+      - "../../public/admin.html:/var/www/html/admin.html"
+      - "../../public/llms.txt:/var/www/html/llms.txt"
+      - "../api:/var/www/html/api"
+      - "../lib:/var/www/html/lib"
+      - "../cron:/var/www/html/cron"
+      - "../uploads:/var/www/html/uploads"
+      - "../ics.php:/var/www/html/ics.php"
+      - "../robots.txt:/var/www/html/robots.txt"
+      - "../sitemap.xml:/var/www/html/sitemap.xml"
+      - "../index.php:/var/www/html/index.php"
+      - "../install.php:/var/www/html/install.php"
+      - "../db:/var/www/html/db"
+      - "../.htaccess:/var/www/html/.htaccess"
+      - "./config.docker.php:/var/www/html/lib/config.php:ro"

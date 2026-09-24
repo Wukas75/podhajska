@@ -1,0 +1,8 @@
+FROM php:8.5-apache
+RUN docker-php-ext-install pdo_mysql && a2enmod rewrite headers \
+ && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+RUN echo "error_reporting=E_ALL" > /usr/local/etc/php/conf.d/dev.ini && echo "log_errors=On" >> /usr/local/etc/php/conf.d/dev.ini
+# mail() -> msmtp -> mailpit (lokálny test e-mailov, UI na http://localhost:8025)
+RUN apt-get update && apt-get install -y --no-install-recommends msmtp-mta && rm -rf /var/lib/apt/lists/* \
+ && printf 'account default\nhost mailpit\nport 1025\nauto_from off\nfrom rezervacie@podhajska.net\n' > /etc/msmtprc \
+ && echo 'sendmail_path = "/usr/bin/msmtp -t -i"' > /usr/local/etc/php/conf.d/mail.ini

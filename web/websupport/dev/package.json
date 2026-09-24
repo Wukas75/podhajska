@@ -1,0 +1,17 @@
+{
+  "name": "podhajska-websupport-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "node deploy.mjs",
+    "e2e": "node e2e.mjs"
+  },
+  "dependencies": {
+    "basic-ftp": "^5.0.5",
+    "mysql2": "^3.24.4",
+    "ssh2-sftp-client": "^12.1.1"
+  },
+  "devDependencies": {
+    "ical.js": "^2.2.1"
+  }
+}
