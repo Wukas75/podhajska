@@ -1,9 +1,10 @@
 /* Štúdiá Podhájska – štruktúrne štýly. Všetky farby/fonty/rozmery cez var(--pod-*). */
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: clip; }
 body {
   margin: 0;
+  overflow-x: clip;              /* žiadny vodorovný pretok -> mobil nedovolí odzoomovať */
   font-family: var(--pod-font-body);
   font-size: var(--pod-fs-base);
   line-height: 1.7;
@@ -103,11 +104,38 @@ h3 { font-size: 1.25rem; }
 
 /* hero */
 .hero {
+  position: relative;
   min-height: var(--pod-hero-min-h);
   display: flex; align-items: center;
   color: #fff;
-  background-image: var(--pod-hero-overlay), var(--pod-hero-image);
+  overflow: hidden;
+  /* záložná fotka, kým JS nevykreslí slider (a ak by zlyhal) */
+  background: var(--pod-hero-image) center / cover no-repeat;
+}
+.hero__slides { position: absolute; inset: 0; z-index: 0; }
+.hero__slide {
+  position: absolute; inset: 0;
   background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1.2s ease;
+}
+.hero__slide.is-active { opacity: 1; }
+.hero::before {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: var(--pod-hero-overlay); pointer-events: none;
+}
+.hero > .container { position: relative; z-index: 2; }
+.hero__dots {
+  position: absolute; left: 0; right: 0; bottom: 18px; z-index: 2;
+  display: flex; justify-content: center; gap: 9px;
+}
+.hero__dots button {
+  width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .45); cursor: pointer;
+  transition: background .2s ease, transform .2s ease;
+}
+.hero__dots button.is-active { background: #fff; transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  .hero__slide { transition: none; }
 }
 .hero__inner { max-width: 640px; padding-block: 80px; }
 .hero h1 { color: #fff; margin-bottom: .35em; }
@@ -129,6 +157,13 @@ h3 { font-size: 1.25rem; }
 .studio { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center; }
 .studio__media { position: relative; }
 .studio__media img { border-radius: var(--pod-radius); aspect-ratio: 4/3; object-fit: cover; }
+
+/* klikací obrázok (odkaz sa nastavuje v CSS editore -> Odkazy na obrázkoch) */
+.img-link { display: block; }
+.img-link img { width: 100%; }
+a.img-link[href] { cursor: pointer; }
+a.img-link[href] img { transition: filter .15s ease, transform .15s ease; }
+a.img-link[href]:hover img { filter: brightness(1.05); transform: scale(1.01); }
 .price-badge {
   position: absolute; right: -12px; bottom: -12px;
   background: var(--pod-accent); color: var(--pod-on-accent);
@@ -145,7 +180,7 @@ h3 { font-size: 1.25rem; }
 
 /* wellness */
 .wellness__grid { display: grid; grid-template-columns: .95fr 1.05fr; gap: 48px; align-items: center; }
-.wellness__logo { max-width: 200px; margin-bottom: 18px; background: var(--pod-accent-dark); padding: 16px 22px; border-radius: var(--pod-radius); }
+.wellness__logo { max-width: 230px; margin-bottom: 18px; }
 .wellness__media img { border-radius: var(--pod-radius); aspect-ratio: 3/4; object-fit: cover; }
 .tag-new {
   display: inline-block; background: var(--pod-accent); color: var(--pod-on-accent);
@@ -209,6 +244,73 @@ h3 { font-size: 1.25rem; }
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 
+/* dostupnosť – kalendár + dopyt */
+.avail { max-width: 680px; margin: 0 auto; }
+.avail__nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 14px; }
+.avail__nav strong { font-family: var(--pod-font-heading); font-size: 1.15rem; min-width: 190px; text-align: center; }
+.avail__arrow {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--pod-border);
+  background: var(--pod-bg); color: var(--pod-heading); font-size: 1.2rem; cursor: pointer; line-height: 1;
+}
+.avail__arrow:hover:not(:disabled) { background: var(--pod-surface); }
+.avail__arrow:disabled { opacity: .35; cursor: default; }
+.avail__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.avail__grid--dow { margin-bottom: 6px; }
+.avail__grid--dow span { text-align: center; font-size: .74rem; font-weight: 600; color: var(--pod-muted); text-transform: uppercase; letter-spacing: .06em; }
+.avail__day {
+  border: 1px solid var(--pod-border); border-radius: 10px; background: var(--pod-bg);
+  padding: 6px 4px 7px; min-height: 58px; cursor: pointer; font: inherit; color: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; transition: border-color .12s ease, background .12s ease;
+}
+.avail__day:hover:not(:disabled) { border-color: var(--pod-accent); background: var(--pod-surface); }
+.avail__day--out { border: 0; background: none; cursor: default; min-height: 0; }
+.avail__day--past { opacity: .32; cursor: default; }
+.avail__day.is-full { background: color-mix(in srgb, var(--pod-accent) 8%, transparent); }
+.avail__daynum { font-size: .82rem; font-weight: 600; }
+.avail__rooms { display: flex; gap: 3px; }
+.avail__room {
+  width: 15px; height: 15px; border-radius: 4px; font-size: .62rem; line-height: 15px; text-align: center;
+  background: #cde7d5; color: #1e5b34; font-weight: 700;
+}
+.avail__room.is-reserved { background: #fce3b3; color: #8a5a12; }
+.avail__room.is-occupied { background: #f2c9cc; color: #8a1c26; }
+.avail__legend { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: center; margin-top: 14px; font-size: .82rem; }
+.avail__sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #cde7d5; vertical-align: -2px; margin-right: 5px; }
+.avail__sw.is-reserved { background: #fce3b3; }
+.avail__sw.is-occupied { background: #f2c9cc; }
+/* mobil: 7 stĺpcov musí vojsť aj do 320 px -- stĺpce smú byť užšie než obsah
+   (minmax(0,1fr)), čipy izieb sa zmenšujú so šírkou dňa */
+.avail__grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.avail__day { min-width: 0; }
+@media (max-width: 560px) {
+  .avail__grid { gap: 3px; }
+  .avail__grid--dow span { font-size: .62rem; letter-spacing: 0; }
+  .avail__day { padding: 5px 2px 6px; min-height: 50px; gap: 4px; border-radius: 8px; }
+  .avail__daynum { font-size: .76rem; }
+  .avail__rooms { gap: 2px; width: 100%; justify-content: center; }
+  .avail__room { width: auto; flex: 0 1 13px; min-width: 0; height: 13px; line-height: 13px; font-size: .52rem; border-radius: 3px; }
+  .avail__nav { gap: 10px; }
+  .avail__nav strong { min-width: 0; font-size: 1.05rem; }
+}
+
+.inq { margin-top: 26px; border: 1px solid var(--pod-border); border-radius: var(--pod-radius); padding: 22px; background: var(--pod-surface); }
+.inq h3 { margin: 0 0 14px; font-size: 1.15rem; }
+.inq__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.inq label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; font-weight: 600; color: var(--pod-muted); }
+.inq__full { grid-column: 1 / -1; margin-top: 12px; display: flex; }
+.inq input, .inq select, .inq textarea {
+  font: inherit; padding: 8px 10px; border: 1px solid var(--pod-border); border-radius: 8px;
+  background: var(--pod-bg); color: var(--pod-text); font-weight: 400;
+}
+.inq input:focus, .inq select:focus, .inq textarea:focus { outline: 2px solid var(--pod-accent); outline-offset: 1px; }
+.inq__hint { min-height: 1.2em; margin: 10px 0 0; font-size: .84rem; color: #8a1c26; }
+.inq__actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.inq__actions .btn { padding: 10px 20px; }
+.inq__msg { margin: 12px 0 0; font-size: .9rem; }
+.inq__msg--ok { color: #1e5b34; font-weight: 600; }
+.inq__msg--warn { color: #8a1c26; font-weight: 600; }
+@media (max-width: 560px) { .inq__grid { grid-template-columns: 1fr; } }
+
 /* kontakt */
 .contact__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; }
 .contact__list { list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 14px; }
@@ -222,15 +324,26 @@ h3 { font-size: 1.25rem; }
 .site-footer h4 { color: #fff; font-family: var(--pod-font-body); font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 14px; }
 .site-footer a { color: rgba(255,255,255,.85); text-decoration: none; display: block; padding: 3px 0; }
 .site-footer a:hover { color: #fff; }
+.site-footer .container.site-footer__bottom { display: block; }
 .site-footer__bottom { border-top: 1px solid rgba(255,255,255,.16); margin-top: 36px; padding-top: 20px; font-size: .82rem; opacity: .8; }
+/* mobil: dlhý e-mail rozťahoval 1. stĺpec a „Odkazy"/„Sleduj nás" utiekli za okraj */
+.site-footer .container > * { min-width: 0; }
+.site-footer a { overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .site-footer .container:not(.site-footer__bottom) { grid-template-columns: 1fr; gap: 26px; }
+}
 
 /* lightbox */
 .lightbox {
   position: fixed; inset: 0; z-index: 200; display: none;
+  padding: 16px;
   background: rgba(6, 20, 24, .92); align-items: center; justify-content: center;
 }
 .lightbox.is-open { display: flex; }
-.lightbox img { max-width: 92vw; max-height: 86vh; border-radius: 8px; }
+.lightbox img {
+  max-width: 100%; max-height: 100%; width: auto; height: auto;
+  object-fit: contain; border-radius: 8px;
+}
 .lightbox__btn {
   position: absolute; background: rgba(255,255,255,.12); color: #fff; border: 0;
   width: 48px; height: 48px; border-radius: 50%; font-size: 1.4rem; cursor: pointer;

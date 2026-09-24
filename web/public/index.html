@@ -9,7 +9,72 @@
   <meta property="og:description" content="Moderné štúdiá v Podhájskej s bazénom, záhradou a wellness. Ubytovanie pre dospelých (18+)." />
   <meta property="og:image" content="/assets/img/bazen-trysky.jpg" />
   <meta property="og:type" content="website" />
-  <link rel="icon" href="/assets/img/logo.jpg" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LodgingBusiness",
+    "name": "Bungalovy CLASSIC & Wellness Podhájska",
+    "url": "https://podhajska.net/",
+    "image": "https://podhajska.net/assets/img/bazen-trysky.jpg",
+    "description": "Pokojné ubytovanie pre dospelých (18+) v obľúbenej obci Podhájska – tri súkromné štúdiá s bazénom a záhradou, priamo pri wellness centre Wellness Classic (fínska sauna, jacuzzi).",
+    "telephone": "+421911151414",
+    "email": "info@podhajska.net",
+    "priceRange": "od 50 € / noc",
+    "petsAllowed": false,
+    "sameAs": [
+      "https://www.facebook.com/people/Wellness-Classic-Podh%C3%A1jska-Adults-Only/100054429072810/"
+    ],
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Nová 859",
+      "addressLocality": "Podhájska",
+      "postalCode": "941 48",
+      "addressCountry": "SK"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 48.1156,
+      "longitude": 18.3312
+    },
+    "amenityFeature": [
+      { "@type": "LocationFeatureSpecification", "name": "Bazén" },
+      { "@type": "LocationFeatureSpecification", "name": "Fínska sauna" },
+      { "@type": "LocationFeatureSpecification", "name": "Jacuzzi" },
+      { "@type": "LocationFeatureSpecification", "name": "Klimatizácia" },
+      { "@type": "LocationFeatureSpecification", "name": "Bezplatné Wi-Fi" },
+      { "@type": "LocationFeatureSpecification", "name": "Vlastná kuchynka" },
+      { "@type": "LocationFeatureSpecification", "name": "Súkromná terasa" },
+      { "@type": "LocationFeatureSpecification", "name": "Parkovanie pri objekte" }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "bestRating": "5",
+      "reviewCount": "17"
+    },
+    "review": [
+      {
+        "@type": "Review",
+        "author": { "@type": "Person", "name": "Soňa Hučalová" },
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "reviewBody": "Krásne, čisté izby. Vybavenie je pomerne nové, postele nie sú absolútne vyležané. Prostredie je kľudné a dobre udržiavané. Milí majitelia, ktorí dbajú na recykláciu. Poloha vyhovujúca. Nie je čo vytknúť."
+      },
+      {
+        "@type": "Review",
+        "author": { "@type": "Person", "name": "Branislav Nižňanský" },
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "reviewBody": "Vynikajúce ubytovanie, bazén super, prostredie tiež a výborný domáci."
+      },
+      {
+        "@type": "Review",
+        "author": { "@type": "Person", "name": "Tatiana Glofáková" },
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "reviewBody": "Príjemní majitelia, tichá lokalita, pekné čisté izby."
+      }
+    ]
+  }
+  </script>
+  <link rel="icon" type="image/png" href="/assets/img/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="pod-fonts" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -22,12 +87,12 @@
   <div class="topbar">
     <div class="container">
       <div class="topbar__group">
-        <a href="tel:+421911151414">☎ +421 911 151 414</a>
-        <a href="mailto:studiapodhajska@gmail.com">✉ studiapodhajska@gmail.com</a>
+        <a href="tel:+421911151414">☎ <span data-contact="phone">+421 911 151 414</span></a>
+        <a href="mailto:info@podhajska.net">✉ <span data-contact="email">info@podhajska.net</span></a>
       </div>
       <div class="topbar__group">
-        <a href="https://www.facebook.com/profile.php" target="_blank" rel="noopener">Facebook</a>
-        <a class="btn btn--light" style="padding:7px 16px;font-size:.82rem" href="#kontakt">Overiť dostupnosť termínu</a>
+        <a href="https://www.facebook.com/people/Wellness-Classic-Podh%C3%A1jska-Adults-Only/100054429072810/" target="_blank" rel="noopener" data-contact="facebook">Facebook</a>
+        <a class="btn btn--light" style="padding:7px 16px;font-size:.82rem" href="#dostupnost" data-contact="booking">Overiť dostupnosť termínu</a>
       </div>
     </div>
   </div>
@@ -35,13 +100,14 @@
   <header class="site-header">
     <div class="container">
       <a class="logo" href="#domov">
-        <img src="/assets/img/logo.jpg" alt="Štúdiá Podhájska" />
+        <img src="/assets/img/logo.png" alt="Štúdiá Podhájska" />
         <span><b data-edit="brand.name">Štúdiá Podhájska</b><span data-edit="brand.tagline">pokoj pre dospelých</span></span>
       </a>
       <button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>
       <nav class="main-nav">
         <a href="#domov">Domov</a>
         <a href="#studia">Štúdiá</a>
+        <a href="#dostupnost">Dostupnosť</a>
         <a href="#okolie">Okolie a aktivity</a>
         <a href="#galeria">Galéria</a>
         <a href="#blog">Blog</a>
@@ -58,7 +124,7 @@
           <h1 data-edit="hero.title">Pokojné ubytovanie pre dospelých v Podhájskej</h1>
           <p data-edit="hero.subtitle">Doprajte si oddych v moderných štúdiách v obľúbenej obci Podhájska. Súčasťou ubytovania je wellness centrum Wellness Classic.</p>
           <div class="hero__cta">
-            <a class="btn btn--primary" href="#kontakt">Overiť dostupnosť termínu</a>
+            <a class="btn btn--primary" href="#dostupnost" data-contact="booking">Overiť dostupnosť termínu</a>
             <a class="btn btn--on-dark" href="#studia">Pozrieť štúdiá</a>
           </div>
         </div>
@@ -93,7 +159,9 @@
         </div>
         <div class="studio">
           <div class="studio__media">
-            <img src="/assets/img/studio-interier.jpg" alt="Interiér štúdia" />
+            <a class="img-link" data-img-link="studia.image">
+              <img src="/assets/img/studio-interier.jpg" alt="Interiér štúdia" />
+            </a>
             <span class="price-badge" data-edit="studia.price">50,- € / noc</span>
           </div>
           <div>
@@ -119,7 +187,7 @@
     <section class="section" id="wellness">
       <div class="container wellness__grid">
         <div>
-          <img class="wellness__logo" src="/assets/img/wellness-logo.png" alt="Wellness Classic" />
+          <img class="wellness__logo" src="/assets/img/logo.png" alt="Classic Wellness" />
           <span class="tag-new" data-edit="wellness.tag">Novinka od apríla 2026</span>
           <h2 data-edit="wellness.heading">Wellness Classic</h2>
           <p data-edit="wellness.body">Hostia našich štúdií môžu využiť aj služby nového wellness centra Wellness Classic. Otvorené denne 9:00 – 22:00. Ideálne pre páry alebo menšie skupiny hostí.</p>
@@ -132,7 +200,9 @@
           <p style="margin-top:22px"><strong data-edit="wellness.price">Cena: 50,- € / deň</strong></p>
         </div>
         <div class="wellness__media">
-          <img src="/assets/img/studio-1.jpg" alt="Wellness Classic – sauna a jacuzzi" />
+          <a class="img-link" data-img-link="wellness.image">
+            <img src="/assets/img/studio-1.jpg" alt="Wellness Classic – sauna a jacuzzi" />
+          </a>
         </div>
       </div>
     </section>
@@ -163,11 +233,11 @@
         <h2 data-edit="reviews.heading">Čo o nás povedali naši zákazníci</h2>
         <div class="reviews__score">4.9</div>
         <div class="reviews__stars">★ ★ ★ ★ ★</div>
-        <p class="muted" data-edit="reviews.count">5/5 · 1 496 pozitívnych ohlasov</p>
+        <p class="muted" data-edit="reviews.count">4,9/5 · 17 recenzií na Google · 9,7/10 · 41 hodnotení na Booking.com</p>
         <div class="reviews__grid" data-edit="reviews.cards">
-          <div class="review-card"><p>„Čisté, tiché a krásne prostredie. Bazén a záhrada boli presne to, čo sme potrebovali."</p><cite>Spokojný hosť</cite></div>
-          <div class="review-card"><p>„Perfektný pokoj pre dospelých. Majitelia veľmi ústretoví, radi sa vrátime."</p><cite>Spokojný hosť</cite></div>
-          <div class="review-card"><p>„Skvelé miesto na oddych po termálnom kúpalisku. Wellness bol príjemný bonus."</p><cite>Spokojný hosť</cite></div>
+          <div class="review-card"><p>„Krásne, čisté izby. Vybavenie je pomerne nové, postele nie sú absolútne vyležané. Prostredie je kľudné a dobre udržiavané. Milí majitelia, ktorí dbajú na recykláciu. Poloha vyhovujúca. Nie je čo vytknúť."</p><cite>Soňa Hučalová · Google</cite></div>
+          <div class="review-card"><p>„Vynikajúce ubytovanie, bazén super, prostredie tiež a výborný domáci."</p><cite>Branislav Nižňanský · Google</cite></div>
+          <div class="review-card"><p>„Príjemní majitelia, tichá lokalita, pekné čisté izby."</p><cite>Tatiana Glofáková · Google</cite></div>
         </div>
       </div>
     </section>
@@ -200,6 +270,18 @@
       </div>
     </section>
 
+    <!-- DOSTUPNOSŤ -->
+    <section class="section" id="dostupnost">
+      <div class="container">
+        <div class="section__head">
+          <p class="section__eyebrow">Rezervácie</p>
+          <h2 data-edit="dostupnost.heading">Dostupnosť a rezervácia</h2>
+          <p class="muted" data-edit="dostupnost.lead">Vyberte si voľný termín a rezervujte si ubytovanie. Termín sa zablokuje ako predbežne rezervovaný a my sa vám ozveme s potvrdením. Kalendár je priebežne synchronizovaný s Booking.com.</p>
+        </div>
+        <div id="avail" class="avail"><p class="muted">Načítavam kalendár…</p></div>
+      </div>
+    </section>
+
     <!-- KONTAKT -->
     <section class="section section--surface" id="kontakt">
       <div class="container">
@@ -211,11 +293,11 @@
           <div>
             <ul class="contact__list">
               <li><b>Adresa</b> Nová 859, 941 48 Podhájska</li>
-              <li><b>Telefón</b> <a href="tel:+421911151414">+421 911 151 414</a></li>
-              <li><b>E-mail</b> <a href="mailto:studiapodhajska@gmail.com">studiapodhajska@gmail.com</a></li>
-              <li><b>Facebook</b> <a href="https://www.facebook.com/profile.php" target="_blank" rel="noopener">Štúdiá Podhájska</a></li>
+              <li><b>Telefón</b> <a href="tel:+421911151414" data-contact="phone">+421 911 151 414</a></li>
+              <li><b>E-mail</b> <a href="mailto:info@podhajska.net" data-contact="email">info@podhajska.net</a></li>
+              <li><b>Facebook</b> <a href="https://www.facebook.com/people/Wellness-Classic-Podh%C3%A1jska-Adults-Only/100054429072810/" target="_blank" rel="noopener" data-contact="facebook">Štúdiá Podhájska</a></li>
             </ul>
-            <a class="btn btn--primary" href="mailto:studiapodhajska@gmail.com?subject=Dopyt%20na%20ubytovanie">Napísať e-mail</a>
+            <a class="btn btn--primary" href="mailto:info@podhajska.net?subject=Dopyt%20na%20ubytovanie" data-contact="email-link">Napísať e-mail</a>
           </div>
           <iframe
             title="Mapa – Podhájska"
@@ -231,31 +313,34 @@
       <div>
         <a class="logo" href="#domov" style="color:#fff">
           <img src="/assets/img/logo-light.png" alt="" />
-          <span><b style="color:#fff">Štúdiá Podhájska</b><span style="color:rgba(255,255,255,.7)">Nová 859, 941 48 Podhájska</span></span>
+          <span><b style="color:#fff" data-edit="footer.brand">Bungalovy CLASSIC &amp; Wellness Podhájska</b></span>
         </a>
-        <p style="margin-top:16px;max-width:34ch">Pokojné ubytovanie pre dospelých s bazénom, záhradou a wellness Wellness Classic.</p>
+        <p style="font-size:.74rem;letter-spacing:.04em;color:rgba(255,255,255,.7);margin:8px 0 0" data-edit="footer.address">Nová 859, 941 48 Podhájska</p>
+        <p style="margin-top:16px;max-width:34ch" data-edit="footer.about">Pokojné ubytovanie pre dospelých s bazénom, záhradou a wellness Wellness Classic.</p>
       </div>
       <div>
-        <h4>Odkazy</h4>
-        <a href="#domov">Domov</a>
-        <a href="#studia">Štúdiá</a>
-        <a href="#galeria">Galéria</a>
-        <a href="#blog">Blog</a>
-        <a href="#kontakt">Kontakt</a>
+        <h4 data-edit="footer.col1.title">Odkazy</h4>
+        <div data-edit="footer.col1.links">
+          <a href="#domov">Domov</a>
+          <a href="#studia">Štúdiá</a>
+          <a href="#galeria">Galéria</a>
+          <a href="#blog">Blog</a>
+          <a href="#kontakt">Kontakt</a>
+        </div>
       </div>
       <div>
-        <h4>Rezervácie</h4>
-        <a href="mailto:studiapodhajska@gmail.com">studiapodhajska@gmail.com</a>
-        <a href="tel:+421911151414">+421 911 151 414</a>
+        <h4 data-edit="footer.col2.title">Rezervácie</h4>
+        <a href="mailto:info@podhajska.net" data-contact="email">info@podhajska.net</a>
+        <a href="tel:+421911151414" data-contact="phone">+421 911 151 414</a>
       </div>
       <div>
-        <h4>Sleduj nás</h4>
-        <a href="https://www.facebook.com/profile.php" target="_blank" rel="noopener">Facebook</a>
+        <h4 data-edit="footer.col3.title">Sleduj nás</h4>
+        <a href="https://www.facebook.com/people/Wellness-Classic-Podh%C3%A1jska-Adults-Only/100054429072810/" target="_blank" rel="noopener" data-contact="facebook">Facebook</a>
         <a href="/admin">Prihlásenie správcu</a>
       </div>
     </div>
     <div class="container site-footer__bottom">
-      © <span id="year"></span> Štúdiá Podhájska · Všetky práva vyhradené
+      © <span id="year"></span> <span data-edit="footer.copyright">Štúdiá Podhájska · Všetky práva vyhradené</span>
     </div>
   </footer>
 

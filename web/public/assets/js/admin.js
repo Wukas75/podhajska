@@ -60,6 +60,20 @@
       '.pod-btn.sec{background:#333}',
       '.pod-btn.ghost{background:none;border:1px solid #555;color:#ccc}',
       '[data-edit].pod-editing{outline:2px dashed #e0002f;outline-offset:3px;cursor:text}',
+      '.pod-cal{margin:6px 0 18px}',
+      '.pod-cal h4{margin:0 0 6px;font:600 14px system-ui}',
+      '.pod-cal__nav{display:flex;align-items:center;gap:14px;margin-bottom:10px}',
+      '.pod-cal__nav strong{min-width:150px;text-align:center}',
+      '.pod-cal__grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}',
+      '.pod-cal__grid span.dow{font:600 10px system-ui;text-align:center;color:#888;text-transform:uppercase}',
+      '.pod-cal__d{border:1px solid #ddd;border-radius:5px;background:#fff;color:#222;font:600 12px system-ui;min-height:34px;cursor:pointer;padding:2px}',
+      '.pod-cal__d.out{border:0;background:none;cursor:default}',
+      '.pod-cal__d.past{opacity:.35;cursor:default}',
+      '.pod-cal__d.manual{background:#fde2e4;border-color:#f2b8bd}',
+      '.pod-cal__d.booking{background:#dfeafd;border-color:#b9d4f5;cursor:default}',
+      '.pod-cal__d.pending{background:#fff2d6;border-color:#f0d79a}',
+      '.pod-cal__d.sel{outline:2px solid #e0002f;outline-offset:1px}',
+      '.pod-cal__d:hover:not(.out):not(.past):not(.booking){border-color:#e0002f}',
       '.pod-modal{position:fixed;inset:0;z-index:340;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:5vh 0}',
       '.pod-modal__box{background:#fff;color:#222;width:min(920px,94vw);max-height:90vh;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}',
       '.pod-modal__head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eee;flex:0 0 auto}',
@@ -142,10 +156,19 @@
   /* ---------- CSS editor panel ---------- */
   function buildPanel(state) {
     var vars = Object.assign({}, DEFAULTS, state.theme_vars || {});
+    // hero slider: pole fotiek; spätne kompatibilné s pôvodným jediným heroImage
+    vars.heroImages = (Array.isArray(vars.heroImages) ? vars.heroImages.slice() : []).filter(Boolean);
+    if (!vars.heroImages.length) vars.heroImages = [vars.heroImage || DEFAULTS.heroImage];
+    vars.heroImage = vars.heroImages[0];
     var textsDraft = Object.assign({}, state.texts || {});
+    var seoDraft = Object.assign({}, state.seo || {});
+    var contactDraft = Object.assign({}, state.contact || {});
     var panel = el('div', { class: 'pod-panel', id: 'pod-panel' });
 
-    function sync() { applyLive(vars); }
+    function sync() {
+      applyLive(vars);
+      if (window.PODsite && window.PODsite.renderHero) window.PODsite.renderHero(vars);
+    }
 
     function color(key, label) {
       var wrap = el('div', { class: 'row' });
@@ -213,20 +236,51 @@
     panel.appendChild(select('buttonStyle', 'Tlačidlá', [{ v: 'rounded', t: 'Zaoblené' }, { v: 'sharp', t: 'Ostré' }]));
 
     panel.appendChild(head('Hero'));
-    (function heroImageRow() {
+    (function heroSliderRows() {
       var wrap = el('div', { class: 'row' });
-      wrap.appendChild(el('label', { text: 'Úvodná fotka' }));
-      var thumb = el('img', { src: vars.heroImage || '', alt: '', style: 'display:block;width:100%;height:82px;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#333' });
-      var pick = el('button', { class: 'pod-btn ghost', style: 'margin-right:6px' }, 'Zmeniť fotku');
+      wrap.appendChild(el('label', { text: 'Úvodné fotky (slider) — poradie zhora nadol' }));
+      var list = el('div', { style: 'display:grid;gap:6px;margin-bottom:8px' });
+
+      function commit() {
+        vars.heroImage = vars.heroImages[0] || '';
+        paint();
+        sync();
+      }
+      function paint() {
+        list.innerHTML = '';
+        vars.heroImages.forEach(function (url, i) {
+          var item = el('div', { style: 'display:flex;align-items:center;gap:6px' });
+          item.appendChild(el('img', { src: url, alt: '', style: 'width:46px;height:34px;object-fit:cover;border-radius:4px;background:#333;flex:0 0 auto' }));
+          item.appendChild(el('span', { style: 'flex:1' }));
+          var up = el('button', { class: 'pod-btn ghost', style: 'padding:2px 7px', title: 'Vyššie' }, '▲');
+          var dn = el('button', { class: 'pod-btn ghost', style: 'padding:2px 7px', title: 'Nižšie' }, '▼');
+          var rm = el('button', { class: 'pod-btn ghost', style: 'padding:2px 7px', title: 'Odstrániť' }, '✕');
+          up.disabled = i === 0;
+          dn.disabled = i === vars.heroImages.length - 1;
+          up.addEventListener('click', function () { var a = vars.heroImages; a.splice(i - 1, 0, a.splice(i, 1)[0]); commit(); });
+          dn.addEventListener('click', function () { var a = vars.heroImages; a.splice(i + 1, 0, a.splice(i, 1)[0]); commit(); });
+          rm.addEventListener('click', function () {
+            vars.heroImages.splice(i, 1);
+            if (!vars.heroImages.length) vars.heroImages = [DEFAULTS.heroImage];
+            commit();
+          });
+          item.appendChild(up); item.appendChild(dn); item.appendChild(rm);
+          list.appendChild(item);
+        });
+      }
+
+      var add = el('button', { class: 'pod-btn ghost', style: 'margin-right:6px' }, '+ Pridať fotku');
+      add.addEventListener('click', function () {
+        pickImage(function (url) { vars.heroImages.push(url); commit(); });
+      });
       var reset = el('button', { class: 'pod-btn ghost' }, 'Predvolená');
-      pick.addEventListener('click', function () {
-        pickImage(function (url) { vars.heroImage = url; thumb.src = url; sync(); });
-      });
-      reset.addEventListener('click', function () {
-        vars.heroImage = DEFAULTS.heroImage; thumb.src = DEFAULTS.heroImage; sync();
-      });
-      wrap.appendChild(thumb); wrap.appendChild(pick); wrap.appendChild(reset);
+      reset.addEventListener('click', function () { vars.heroImages = [DEFAULTS.heroImage]; commit(); });
+
+      wrap.appendChild(list);
+      wrap.appendChild(add);
+      wrap.appendChild(reset);
       panel.appendChild(wrap);
+      paint();
     })();
     panel.appendChild(range('heroMinH', 'Výška (min-height)', 50, 100, 'vh'));
     panel.appendChild(select('heroOverlayType', 'Typ prekrytia', [
@@ -239,37 +293,224 @@
     panel.appendChild(head('Editor textov'));
     var teRow = el('div', { class: 'row' });
     var teBtn = el('button', { class: 'pod-btn ghost' }, 'Zapnúť editovanie textov');
+    var linkBtn = el('button', { class: 'pod-btn ghost', style: 'margin-left:6px' }, '🔗 Odkaz');
+    linkBtn.disabled = true;
     var editing = false;
+
+    // Počas editovania odkazy dočasne strácajú href (aby nenavigovali); skutočná
+    // hodnota sa drží v data-pod-edit-href. Pri ukladaní ju vrátime späť.
+    function stashLink(a, on) {
+      if (on) {
+        if (a.hasAttribute('href')) { a.dataset.podEditHref = a.getAttribute('href'); a.removeAttribute('href'); }
+      } else if (a.dataset.podEditHref != null) {
+        a.setAttribute('href', a.dataset.podEditHref);
+        delete a.dataset.podEditHref;
+      }
+    }
+    function cleanHtml(node) {
+      var c = node.cloneNode(true);
+      c.querySelectorAll('a[data-pod-edit-href]').forEach(function (a) {
+        a.setAttribute('href', a.getAttribute('data-pod-edit-href'));
+        a.removeAttribute('data-pod-edit-href');
+      });
+      c.removeAttribute('contenteditable');
+      c.classList.remove('pod-editing');
+      return c.innerHTML.trim();
+    }
+    function onEdit(e) { textsDraft[e.currentTarget.dataset.edit] = cleanHtml(e.currentTarget); }
+
     teBtn.addEventListener('click', function () {
       editing = !editing;
       teBtn.textContent = editing ? 'Vypnúť editovanie textov' : 'Zapnúť editovanie textov';
+      linkBtn.disabled = !editing;
       document.querySelectorAll('[data-edit]').forEach(function (node) {
         node.classList.toggle('pod-editing', editing);
         node.contentEditable = editing ? 'true' : 'false';
-        // Ak je editovaný text vnútri odkazu (napr. logo v hlavičke), odkaz
-        // pri kliknutí chytá navigáciu aj drag a nedá sa doň kliknúť kurzorom.
-        // Počas editovania mu dočasne odoberieme href (a po skončení vrátime).
-        var a = node.closest('a');
-        if (a) {
-          if (editing) {
-            if (a.hasAttribute('href')) { a.dataset.podEditHref = a.getAttribute('href'); a.removeAttribute('href'); }
-          } else if (a.dataset.podEditHref != null) {
-            a.setAttribute('href', a.dataset.podEditHref);
-            delete a.dataset.podEditHref;
-          }
+        // odkaz OKOLO editovaného textu (napr. logo v hlavičke) aj odkazy VNÚTRI
+        // (napr. zoznam odkazov v pätičke) – dočasne bez href a bez drag,
+        // nech sa dá do textu kliknúť aj označiť ho myšou
+        var around = node.closest('a');
+        if (around) {
+          stashLink(around, editing);
+          if (editing) around.setAttribute('draggable', 'false');
+          else around.removeAttribute('draggable');
         }
-        if (editing) {
-          node.addEventListener('input', onEdit);
+        node.querySelectorAll('a').forEach(function (a) { stashLink(a, editing); });
+        if (editing) node.addEventListener('input', onEdit);
+        else node.removeEventListener('input', onEdit);
+      });
+      // Všetky odkazy v hlavičke a pätičke (aj tie bez data-edit, napr. logo
+      // v pätičke nad adresou) – počas editovania bez href a bez drag, aby
+      // klik vedľa textu nenavigoval preč a nezačal ťahať odkaz.
+      document.querySelectorAll('header a, footer a').forEach(function (a) {
+        stashLink(a, editing);
+        if (editing) a.setAttribute('draggable', 'false');
+        else a.removeAttribute('draggable');
+      });
+      document.querySelectorAll('a[data-img-link]').forEach(function (a) { stashLink(a, editing); });
+    });
+
+    // Nechá fokus v editovanom texte a nastaví/zmení/odstráni odkaz na výbere alebo v odkaze pod kurzorom.
+    linkBtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    linkBtn.addEventListener('click', function () {
+      var sel = window.getSelection();
+      if (!sel || !sel.rangeCount) { alert('Najprv klikni do textu (alebo označ text) v editovanej časti stránky.'); return; }
+      var anchorEl = sel.anchorNode && (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode);
+      var host = anchorEl && anchorEl.closest('[data-edit]');
+      if (!host || host.contentEditable !== 'true') { alert('Kurzor musí byť v editovanej časti stránky.'); return; }
+      var linkEl = anchorEl.closest('a');
+      var hasSelection = sel.toString().length > 0;
+      var current = linkEl ? (linkEl.dataset.podEditHref != null ? linkEl.dataset.podEditHref : linkEl.getAttribute('href') || '') : '';
+      var url = prompt('Odkaz (URL). Prázdne pole = odstrániť odkaz:', current);
+      if (url === null) return;
+      url = url.trim();
+
+      function styleLink(a) {
+        if (/^https?:\/\//i.test(url)) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); }
+        else { a.removeAttribute('target'); a.removeAttribute('rel'); }
+        // drž href v stashi, nech počas editovania nenaviguje
+        if (url) { a.dataset.podEditHref = url; a.removeAttribute('href'); }
+      }
+      if (linkEl && !hasSelection) {
+        if (url) { styleLink(linkEl); }
+        else { // rozbaliť odkaz
+          var p = linkEl.parentNode;
+          while (linkEl.firstChild) p.insertBefore(linkEl.firstChild, linkEl);
+          p.removeChild(linkEl);
+        }
+      } else if (hasSelection) {
+        if (url) {
+          host.querySelectorAll('a').forEach(function (a) { a.setAttribute('data-pod-known', '1'); });
+          document.execCommand('createLink', false, url);
+          host.querySelectorAll('a:not([data-pod-known])').forEach(styleLink);
+          host.querySelectorAll('a[data-pod-known]').forEach(function (a) { a.removeAttribute('data-pod-known'); });
         } else {
-          node.removeEventListener('input', onEdit);
+          document.execCommand('unlink');
+        }
+      } else {
+        alert('Označ text, ktorý má byť odkazom, alebo klikni do existujúceho odkazu.');
+        return;
+      }
+      textsDraft[host.dataset.edit] = cleanHtml(host);
+    });
+
+    teRow.appendChild(teBtn);
+    teRow.appendChild(linkBtn);
+    teRow.appendChild(el('label', { style: 'margin-top:8px', text: 'Zapni editovanie, klikni na text na stránke a prepíš ho. „🔗 Odkaz" nastaví/zmení odkaz na označenom texte alebo v odkaze pod kurzorom (aj v pätičke). Ulož tlačidlom nižšie.' }));
+    panel.appendChild(teRow);
+
+    panel.appendChild(head('Odkazy na obrázkoch'));
+    [
+      ['studia.image', 'Sekcia Štúdiá – obrázok'],
+      ['wellness.image', 'Sekcia Wellness – obrázok']
+    ].forEach(function (pair) {
+      var key = pair[0] + '.href';
+      var wrap = el('div', { class: 'row' });
+      wrap.appendChild(el('label', { text: pair[1] + ' — odkaz po kliknutí' }));
+      var inp = el('input', { type: 'text', placeholder: 'https://…  (prázdne = bez odkazu)', value: textsDraft[key] || '' });
+      inp.style.width = '100%';
+      inp.addEventListener('input', function () {
+        var v = inp.value.trim();
+        if (v) textsDraft[key] = v; else delete textsDraft[key];
+        var a = document.querySelector('a[data-img-link="' + pair[0] + '"]');
+        if (!a) return;
+        if (v) {
+          a.setAttribute('href', v);
+          if (/^https?:\/\//i.test(v)) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+          else { a.removeAttribute('target'); a.removeAttribute('rel'); }
+        } else {
+          a.removeAttribute('href'); a.removeAttribute('target'); a.removeAttribute('rel');
         }
       });
+      wrap.appendChild(inp);
+      panel.appendChild(wrap);
     });
-    function onEdit(e) { textsDraft[e.currentTarget.dataset.edit] = e.currentTarget.innerHTML.trim(); }
-    teRow.appendChild(teBtn);
-    teRow.appendChild(el('p', { class: 'val' }, ''));
-    teRow.appendChild(el('label', { text: 'Po zapnutí klikni na text na stránke a prepíš ho. Uloží sa tlačidlom nižšie.' }));
-    panel.appendChild(teRow);
+
+    panel.appendChild(head('Kontakt a odkazy (hlavička + päta)'));
+    (function contactRows() {
+      function preview() {
+        if (window.PODsite && window.PODsite.applyContact) window.PODsite.applyContact(contactDraft);
+      }
+      [
+        ['phone', 'Telefón', '+421 911 151 414'],
+        ['email', 'E-mail', 'info@podhajska.net'],
+        ['facebook', 'Facebook (URL)', 'https://www.facebook.com/…'],
+        ['bookingUrl', 'Tlačidlo „Overiť dostupnosť termínu" — odkaz', '#kontakt / https://… / mailto:…']
+      ].forEach(function (f) {
+        var wrap = el('div', { class: 'row' });
+        wrap.appendChild(el('label', { text: f[1] }));
+        var inp = el('input', { type: 'text', placeholder: f[2], value: contactDraft[f[0]] || '' });
+        inp.style.width = '100%';
+        inp.addEventListener('input', function () {
+          var v = inp.value.trim();
+          if (v) contactDraft[f[0]] = v; else delete contactDraft[f[0]];
+          preview();
+        });
+        wrap.appendChild(inp);
+        panel.appendChild(wrap);
+      });
+      panel.appendChild(el('div', { class: 'row' },
+        '<label style="color:#888">Prázdne pole = ponechá sa pôvodná hodnota. Zmena sa prejaví v hlavičke, v sekcii Kontakt aj v päte.</label>'));
+    })();
+
+    panel.appendChild(head('SEO'));
+    (function seoRows() {
+      var DEF_TITLE = 'Štúdiá Podhájska – pokojné ubytovanie pre dospelých';
+      var DEF_DESC = 'Moderné štúdiá v Podhájskej v uzavretom areáli s bazénom, záhradou a wellness Wellness Classic. Ubytovanie výhradne pre dospelých (18+).';
+
+      var titleWrap = el('div', { class: 'row' });
+      titleWrap.appendChild(el('label', { text: 'Titulok stránky (aj pri zdieľaní na Facebooku a pod.)' }));
+      var titleInp = el('input', { type: 'text', placeholder: DEF_TITLE, value: seoDraft.title || '' });
+      titleInp.style.width = '100%';
+      titleInp.addEventListener('input', function () {
+        var v = titleInp.value.trim();
+        if (v) seoDraft.title = v; else delete seoDraft.title;
+      });
+      titleWrap.appendChild(titleInp);
+      panel.appendChild(titleWrap);
+
+      var descWrap = el('div', { class: 'row' });
+      descWrap.appendChild(el('label', { text: 'Popis pre vyhľadávače a zdieľanie' }));
+      var descInp = el('textarea', { rows: 3, placeholder: DEF_DESC });
+      descInp.style.cssText = 'width:100%;background:#262626;border:1px solid #444;color:#eee;padding:6px;border-radius:5px;resize:vertical;font:inherit';
+      descInp.value = seoDraft.description || '';
+      descInp.addEventListener('input', function () {
+        var v = descInp.value.trim();
+        if (v) seoDraft.description = v; else delete seoDraft.description;
+      });
+      descWrap.appendChild(descInp);
+      panel.appendChild(descWrap);
+
+      var imgWrap = el('div', { class: 'row' });
+      imgWrap.appendChild(el('label', { text: 'Obrázok pri zdieľaní odkazu (og:image)' }));
+      var thumb = el('img', {
+        src: seoDraft.ogImage || vars.heroImage || '', alt: '',
+        style: 'display:block;width:100%;height:82px;object-fit:cover;border-radius:6px;margin-bottom:6px;background:#333'
+      });
+      var pick = el('button', { class: 'pod-btn ghost', style: 'margin-right:6px' }, 'Vybrať fotku');
+      var clear = el('button', { class: 'pod-btn ghost' }, 'Predvolený');
+      pick.addEventListener('click', function () {
+        pickImage(function (url) { seoDraft.ogImage = url; thumb.src = url; });
+      });
+      clear.addEventListener('click', function () {
+        delete seoDraft.ogImage; thumb.src = vars.heroImage || '';
+      });
+      imgWrap.appendChild(thumb); imgWrap.appendChild(pick); imgWrap.appendChild(clear);
+      panel.appendChild(imgWrap);
+
+      var noindexWrap = el('div', { class: 'row' });
+      var noindexLbl = el('label', { style: 'display:flex;align-items:center;gap:8px;cursor:pointer' });
+      var noindexChk = el('input', { type: 'checkbox' });
+      noindexChk.style.cssText = 'width:auto';
+      noindexChk.checked = !!seoDraft.noindex;
+      noindexChk.addEventListener('change', function () {
+        if (noindexChk.checked) seoDraft.noindex = true; else delete seoDraft.noindex;
+      });
+      noindexLbl.appendChild(noindexChk);
+      noindexLbl.appendChild(document.createTextNode('Skryť stránku pred vyhľadávačmi (noindex)'));
+      noindexWrap.appendChild(noindexLbl);
+      panel.appendChild(noindexWrap);
+    })();
 
     var actions = el('div', { class: 'actions' });
     var saveBtn = el('button', { class: 'pod-btn' }, 'Uložiť');
@@ -278,7 +519,7 @@
     saveBtn.addEventListener('click', function () {
       var css = buildCss(vars);
       saveBtn.textContent = 'Ukladám…'; saveBtn.disabled = true;
-      j(API + '/admin/theme', { method: 'PUT', body: JSON.stringify({ theme_vars: vars, theme_css: css, texts: textsDraft }) })
+      j(API + '/admin/theme', { method: 'PUT', body: JSON.stringify({ theme_vars: vars, theme_css: css, texts: textsDraft, seo: seoDraft, contact: contactDraft }) })
         .then(function (r) {
           saveBtn.disabled = false;
           saveBtn.textContent = r.ok ? 'Uložené ✓' : 'Chyba';
@@ -300,6 +541,7 @@
     actions.appendChild(saveBtn); actions.appendChild(expBtn); actions.appendChild(resetBtn);
     panel.appendChild(actions);
 
+    sync(); // zladí živý náhľad (vrátane hero slideru) so stavom panela
     return panel;
   }
 
@@ -429,6 +671,216 @@
         fetch(API + '/admin/gallery', { method: 'POST', body: fd }).then(function () { i++; next(); });
       })();
     });
+    load();
+  }
+
+  /* ---------- kalendár obsadenosti ---------- */
+  var CAL_MONTHS = ['Január', 'Február', 'Marec', 'Apríl', 'Máj', 'Jún', 'Júl', 'August', 'September', 'Október', 'November', 'December'];
+  var CAL_DOW = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'];
+  function cpad(n) { return n < 10 ? '0' + n : '' + n; }
+  function cYmd(d) { return d.getFullYear() + '-' + cpad(d.getMonth() + 1) + '-' + cpad(d.getDate()); }
+  function cAdd(ymd, n) { var d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n); return cYmd(d); }
+
+  function openCalendar() {
+    var ui = modal('Kalendár obsadenosti');
+    var body = ui.body;
+    var now = new Date();
+    var view = { y: now.getFullYear(), m: now.getMonth() };
+    var sel = null; // { roomId, start }
+    var data = null;
+    var today = cYmd(now);
+
+    function roomName(id) { var r = (data.rooms || []).find(function (x) { return x.id === id; }); return r ? r.name : 'Izba ' + id; }
+    function bookingOn(roomId, ds) {
+      return (data.bookings || []).find(function (b) {
+        return b.room_id === roomId && b.start_date <= ds && ds < b.end_date;
+      });
+    }
+    function patchBooking(id, patch) {
+      return j(API + '/admin/bookings/' + id, { method: 'PATCH', body: JSON.stringify(patch) });
+    }
+
+    function load() {
+      j(API + '/admin/calendar').then(function (r) {
+        if (!r.ok) { body.innerHTML = '<p>' + ((r.body && r.body.error) || 'Chyba') + '</p>'; return; }
+        data = r.body;
+        render();
+      });
+    }
+
+    function render() {
+      body.innerHTML = '';
+
+      /* --- rezervácie čakajúce na schválenie --- */
+      if ((data.pending || []).length) {
+        var pf = el('div', { class: 'pod-field' });
+        pf.appendChild(el('label', { text: 'Rezervácie na schválenie (' + data.pending.length + ')' }));
+        data.pending.forEach(function (p) {
+          var row = el('div', { style: 'border:1px solid #f0d79a;border-radius:8px;padding:10px;margin-bottom:8px;background:#fff9ec' });
+          row.innerHTML =
+            '<b>' + escapeHtml(roomName(p.room_id)) + '</b> · ' + p.start_date + ' → ' + p.end_date +
+            '<br>' + escapeHtml(p.guest_name) + ' · ' + escapeHtml(p.guest_email || '—') + ' · ' + escapeHtml(p.guest_phone || '—') +
+            (p.note ? '<br><i>' + escapeHtml(p.note) + '</i>' : '');
+          var ok = el('button', { class: 'pod-btn', style: 'margin:8px 6px 0 0' }, 'Potvrdiť (obsadené)');
+          var no = el('button', { class: 'pod-btn ghost', style: 'margin-top:8px' }, 'Zamietnuť');
+          ok.addEventListener('click', function () {
+            patchBooking(p.id, { status: 'confirmed', summary: 'Rezervácia: ' + p.guest_name }).then(function () { load(); refreshPublic(); });
+          });
+          no.addEventListener('click', function () {
+            patchBooking(p.id, { status: 'cancelled' }).then(function () { load(); refreshPublic(); });
+          });
+          row.appendChild(ok); row.appendChild(no);
+          pf.appendChild(row);
+        });
+        body.appendChild(pf);
+      }
+
+      /* --- mesačný prehľad, 3 izby --- */
+      var nav = el('div', { class: 'pod-cal__nav' });
+      var prev = el('button', { class: 'pod-btn ghost' }, '‹');
+      var next = el('button', { class: 'pod-btn ghost' }, '›');
+      var canPrev = !(view.y === now.getFullYear() && view.m <= now.getMonth());
+      prev.disabled = !canPrev;
+      prev.addEventListener('click', function () { shift(-1); });
+      next.addEventListener('click', function () { shift(1); });
+      nav.appendChild(prev);
+      nav.appendChild(el('strong', { text: CAL_MONTHS[view.m] + ' ' + view.y }));
+      nav.appendChild(next);
+      body.appendChild(nav);
+      body.appendChild(el('p', { class: 'muted', style: 'margin:0 0 12px;font-size:12px' },
+        'Klik na voľný deň = začiatok termínu, druhý klik = koniec (deň odchodu). ' +
+        'Žlté = rezervované (klik = potvrdiť), ružové = obsadené. Klik na obsadený/rezervovaný deň ' +
+        'ponúkne uvoľniť len ten deň alebo zrušiť celú rezerváciu. Modré = z Booking.com (upravuje sa v Booking.com).'));
+
+      var first = new Date(view.y, view.m, 1);
+      var startDow = (first.getDay() + 6) % 7;
+      var dim = new Date(view.y, view.m + 1, 0).getDate();
+
+      (data.rooms || []).forEach(function (room) {
+        var wrap = el('div', { class: 'pod-cal' });
+        wrap.appendChild(el('h4', { text: room.name }));
+        var grid = el('div', { class: 'pod-cal__grid' });
+        CAL_DOW.forEach(function (x) { grid.appendChild(el('span', { class: 'dow', text: x })); });
+        for (var i = 0; i < startDow; i++) grid.appendChild(el('span', { class: 'pod-cal__d out' }));
+        for (var day = 1; day <= dim; day++) {
+          var ds = view.y + '-' + cpad(view.m + 1) + '-' + cpad(day);
+          var bk = bookingOn(room.id, ds);
+          var cls = 'pod-cal__d';
+          if (ds < today) cls += ' past';
+          if (bk) cls += bk.source === 'booking' ? ' booking' : bk.status === 'pending' ? ' pending' : ' manual';
+          if (sel && sel.roomId === room.id && sel.start === ds) cls += ' sel';
+          var btn = el('button', { class: cls, text: String(day) });
+          btn.dataset.room = room.id;
+          btn.dataset.day = ds;
+          if (bk) { btn.dataset.bid = bk.id; btn.dataset.src = bk.source; btn.dataset.status = bk.status; btn.title = bk.summary || bk.source; }
+          grid.appendChild(btn);
+        }
+        grid.addEventListener('click', onDayClick);
+        wrap.appendChild(grid);
+        body.appendChild(wrap);
+      });
+
+      /* --- synchronizácia s Booking.com --- */
+      body.appendChild(el('h3', { style: 'margin:18px 0 8px;font:700 12px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#e0002f' , text: 'Synchronizácia s Booking.com'}));
+      (data.rooms || []).forEach(function (room) {
+        var f = el('div', { class: 'pod-field' });
+        f.appendChild(el('label', { text: room.name }));
+        var imp = el('input', { type: 'text', placeholder: 'iCal URL z Booking.com (import obsadenosti)' });
+        imp.value = room.ics_import_url || '';
+        var save = el('button', { class: 'pod-btn ghost', style: 'margin:6px 6px 0 0' }, 'Uložiť URL');
+        save.addEventListener('click', function () {
+          save.disabled = true;
+          j(API + '/admin/rooms/' + room.id, { method: 'PUT', body: JSON.stringify({ ics_import_url: imp.value.trim() }) })
+            .then(function () { load(); });
+        });
+        var exportUrl = data.ics_base + room.id + '.ics';
+        var copy = el('button', { class: 'pod-btn ghost', style: 'margin-top:6px' }, 'Kopírovať náš .ics pre Booking');
+        copy.addEventListener('click', function () {
+          navigator.clipboard.writeText(exportUrl).then(function () {
+            copy.textContent = 'Skopírované ✓';
+            setTimeout(function () { copy.textContent = 'Kopírovať náš .ics pre Booking'; }, 1600);
+          });
+        });
+        f.appendChild(imp); f.appendChild(save); f.appendChild(copy);
+        f.appendChild(el('div', { class: 'muted', style: 'font-size:11px;margin-top:5px;word-break:break-all' }, escapeHtml(exportUrl)));
+        f.appendChild(el('div', { class: 'muted', style: 'font-size:11px;margin-top:3px' },
+          room.last_import_at ? 'Posledný import: ' + room.last_import_at + ' · ' + escapeHtml(room.last_import_msg || '') : 'Zatiaľ neimportované'));
+        body.appendChild(f);
+      });
+      var syncBtn = el('button', { class: 'pod-btn' }, 'Synchronizovať teraz');
+      syncBtn.addEventListener('click', function () {
+        syncBtn.disabled = true; syncBtn.textContent = 'Synchronizujem…';
+        j(API + '/admin/calendar/sync', { method: 'POST' }).then(function () { load(); refreshPublic(); });
+      });
+      body.appendChild(syncBtn);
+      if (data.last_sync) body.appendChild(el('span', { class: 'muted', style: 'font-size:11px;margin-left:10px' }, 'naposledy: ' + data.last_sync));
+    }
+
+    function shift(d) {
+      var nm = view.m + d;
+      view.y += Math.floor(nm / 12);
+      view.m = ((nm % 12) + 12) % 12;
+      sel = null;
+      render();
+    }
+
+    function onDayClick(e) {
+      var btn = e.target.closest('.pod-cal__d');
+      if (!btn || btn.classList.contains('out') || btn.classList.contains('past')) return;
+      var roomId = Number(btn.dataset.room);
+      var ds = btn.dataset.day;
+      var src = btn.dataset.src;
+      var status = btn.dataset.status;
+      var bid = btn.dataset.bid;
+
+      if (src === 'booking') return;
+      if (bid && status === 'pending') {
+        if (confirm('Potvrdiť túto rezerváciu ako OBSADENÉ?\n\nOK = potvrdiť, Zrušiť = nechať tak (zamietnuť sa dá v zozname hore).')) {
+          patchBooking(bid, { status: 'confirmed' }).then(function () { load(); refreshPublic(); });
+        }
+        return;
+      }
+      if (bid) {
+        var bk = (data.bookings || []).find(function (x) { return String(x.id) === String(bid); });
+        var rng = bk ? bk.start_date + ' → ' + bk.end_date : ds;
+        var multi = bk && cAdd(bk.start_date, 1) !== bk.end_date;
+        var mm = modal('Zrušiť termín');
+        mm.body.parentElement.style.width = 'min(420px, 92vw)';
+        mm.body.innerHTML = '<p style="margin:0 0 14px">' + escapeHtml(roomName(roomId)) + ' · ' + rng +
+          (bk && bk.guest_name ? '<br>' + escapeHtml(bk.guest_name) : '') + '</p>';
+        var done = function () { mm.close(); load(); refreshPublic(); };
+        if (multi) {
+          var b1 = el('button', { class: 'pod-btn ghost', style: 'display:block;width:100%;margin-bottom:8px' }, 'Uvoľniť len ' + ds);
+          b1.addEventListener('click', function () {
+            j(API + '/admin/bookings/' + bid + '/free-day', { method: 'POST', body: JSON.stringify({ day: ds }) }).then(done);
+          });
+          mm.body.appendChild(b1);
+        }
+        var b2 = el('button', { class: 'pod-btn', style: 'display:block;width:100%;margin-bottom:8px' }, 'Zrušiť celú rezerváciu');
+        b2.addEventListener('click', function () {
+          j(API + '/admin/bookings/' + bid, { method: 'DELETE' }).then(done);
+        });
+        var b3 = el('button', { class: 'pod-btn ghost', style: 'display:block;width:100%' }, 'Späť');
+        b3.addEventListener('click', mm.close);
+        mm.body.appendChild(b2); mm.body.appendChild(b3);
+        return;
+      }
+      // voľný deň – budovanie rozsahu
+      if (!sel || sel.roomId !== roomId || ds < sel.start) {
+        sel = { roomId: roomId, start: ds };
+        render();
+        return;
+      }
+      // druhý klik = deň odchodu (exkluzívny). Rovnaký deň dvakrát = 1 noc.
+      var end = ds === sel.start ? cAdd(sel.start, 1) : ds;
+      var label = prompt('Blokovať ' + roomName(roomId) + ': ' + sel.start + ' → ' + end + ' (odchod)\nPopis (nepovinné):', 'Obsadené');
+      if (label === null) { sel = null; render(); return; }
+      j(API + '/admin/bookings', {
+        method: 'POST',
+        body: JSON.stringify({ room_id: roomId, start_date: sel.start, end_date: end, summary: label || 'Obsadené' }),
+      }).then(function () { sel = null; load(); refreshPublic(); });
+    }
+
     load();
   }
 
@@ -569,14 +1021,16 @@
     var gear = el('button', { title: 'CSS editor' }, '⚙');
     var arts = el('button', { title: 'Články' }, '<span class="lbl">Články</span>');
     var gal = el('button', { title: 'Galéria' }, '<span class="lbl">Foto</span>');
+    var cal = el('button', { title: 'Kalendár obsadenosti' }, '<span class="lbl">Kalendár</span>');
     var out = el('button', { title: 'Odhlásiť sa' }, '⎋');
     gear.addEventListener('click', function () { openPanel(state); });
     arts.addEventListener('click', openArticles);
     gal.addEventListener('click', openGallery);
+    cal.addEventListener('click', openCalendar);
     out.addEventListener('click', function () {
       j(API + '/auth/logout', { method: 'POST' }).then(function () { location.reload(); });
     });
-    fab.appendChild(gear); fab.appendChild(arts); fab.appendChild(gal); fab.appendChild(out);
+    fab.appendChild(gear); fab.appendChild(arts); fab.appendChild(gal); fab.appendChild(cal); fab.appendChild(out);
     document.body.appendChild(fab);
   }
 

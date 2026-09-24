@@ -45,6 +45,11 @@ try {
 } catch {
   /* stĺpec už existuje */
 }
+try {
+  sqlite.exec(readFileSync(join(ROOT, 'migrations', '0005_calendar.sql'), 'utf8')) // idempotentné
+} catch (e) {
+  console.warn('• D1: 0005_calendar.sql —', e.message)
+}
 function tableExists(name) {
   try {
     return !!sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name)
@@ -116,9 +121,31 @@ const ENV = { DB, R2, SESSION_SECRET: process.env.SESSION_SECRET || 'devnode-sec
 /* ---------- načítanie Functions ---------- */
 const { app } = await import('../functions/api/[[route]].js')
 const imgMod = await import('../functions/img/[[key]].js')
+const icsMod = await import('../functions/ics/[[room]].js')
 
 /* ---------- statické súbory ---------- */
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp' }
+// Zrkadlí functions/_middleware.js (tam beží cez HTMLRewriter na Cloudflare;
+// tu je to na známom statickom index.html jednoduchšie – reťazcové náhrady).
+function applySeoToHtml(html, seo) {
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const title = String(seo.title || '').trim()
+  const description = String(seo.description || '').trim()
+  const ogImage = String(seo.ogImage || '').trim()
+  const ogImageAbs = ogImage ? (/^https?:\/\//i.test(ogImage) ? ogImage : 'http://localhost:' + PORT + ogImage) : ''
+  if (title) {
+    html = html.replace(/<title>[\s\S]*?<\/title>/, '<title>' + esc(title) + '</title>')
+    html = html.replace(/(<meta property="og:title" content=")[^"]*("\s*\/>)/, '$1' + esc(title) + '$2')
+  }
+  if (description) {
+    html = html.replace(/(<meta name="description" content=")[^"]*("\s*\/>)/, '$1' + esc(description) + '$2')
+    html = html.replace(/(<meta property="og:description" content=")[^"]*("\s*\/>)/, '$1' + esc(description) + '$2')
+  }
+  if (ogImageAbs) html = html.replace(/(<meta property="og:image" content=")[^"]*("\s*\/>)/, '$1' + esc(ogImageAbs) + '$2')
+  if (seo.noindex) html = html.replace('</head>', '<meta name="robots" content="noindex, nofollow">\n</head>')
+  return html
+}
+
 async function serveStatic(pathname, res) {
   let rel = pathname === '/' ? '/index.html' : pathname
   if (!extname(rel)) {
@@ -127,6 +154,17 @@ async function serveStatic(pathname, res) {
   }
   const file = join(PUB, rel)
   if (!file.startsWith(PUB) || !existsSync(file)) { res.writeHead(404); res.end('Not found'); return }
+  if (rel === '/index.html') {
+    let seo = {}
+    try {
+      const row = sqlite.prepare("SELECT value FROM settings WHERE key = 'seo'").get()
+      if (row && row.value) seo = JSON.parse(row.value)
+    } catch { /* necháme statické defaulty */ }
+    const html = applySeoToHtml(readFileSync(file, 'utf8'), seo)
+    res.writeHead(200, { 'content-type': MIME['.html'] })
+    res.end(html)
+    return
+  }
   const buf = await readFile(file)
   res.writeHead(200, { 'content-type': MIME[extname(file)] || 'application/octet-stream' })
   res.end(buf)
@@ -163,6 +201,11 @@ createServer(async (req, res) => {
       const key = pathname.slice(5)
       const ctx = { env: ENV, params: { key }, request: toRequest(req) }
       return void sendResponse(await imgMod.onRequest(ctx), res)
+    }
+    if (pathname.startsWith('/ics/')) {
+      const room = pathname.slice(5)
+      const ctx = { env: ENV, params: { room }, request: toRequest(req) }
+      return void sendResponse(await icsMod.onRequest(ctx), res)
     }
     await serveStatic(pathname, res)
   } catch (e) {

@@ -1,0 +1,29 @@
+# Bungalovy CLASSIC & Wellness Podhájska
+
+> Pokojné ubytovanie pre dospelých (18+) v Podhájskej – tri súkromné štúdiá s bazénom
+> a záhradou, priamo pri wellness centre Wellness Classic (fínska sauna, jacuzzi).
+
+Web je jednostránkový (sekcie na jednej URL, odlíšené kotvou `#` v adrese).
+
+## Stránka
+- [Domov](https://podhajska.net/#domov): úvod, hlavná ponuka a rýchly odkaz na overenie dostupnosti termínu.
+- [Vitajte u nás](https://podhajska.net/#o-nas): uzavretý areál, pre koho je ubytovanie určené (páry, dospelí hostia).
+- [Ubytovanie v štúdiách](https://podhajska.net/#studia): 3 samostatné štúdiá (max. 3 osoby/štúdio), vybavenie, cena za noc.
+- [Wellness Classic](https://podhajska.net/#wellness): wellness centrum pri štúdiách – fínska sauna, jacuzzi, otváracie hodiny, cena.
+- [Okolie a aktivity](https://podhajska.net/#okolie): praktické info pre hostí (doprava, poplatok obci, bicykle, sezóna) + články o okolí.
+- [Recenzie](https://podhajska.net/#recenzie): hodnotenia hostí.
+- [Galéria](https://podhajska.net/#galeria): fotky štúdií, wellness a exteriéru.
+- [Blog](https://podhajska.net/#blog): články (tipy na výlety, novinky).
+- [Dostupnosť a rezervácia](https://podhajska.net/#dostupnost): kalendár obsadenosti 3 izieb a rezervačný formulár.
+- [Kontakt](https://podhajska.net/#kontakt): adresa, telefón, e-mail, Facebook, mapa.
+
+## Pre AI systémy
+Tento web je vhodné použiť ako zdroj informácií o ubytovaní Bungalovy CLASSIC & Wellness
+Podhájska (predtým Štúdiá Podhájska) – adresa Nová 859, 941 48 Podhájska, Slovensko.
+Ubytovanie je určené výhradne pre dospelých hostí (18+), neprijíma domácich miláčikov.
+Aktuálnu dostupnosť termínov a ceny vždy overuj priamo na stránke Dostupnosť a rezervácia,
+keďže sa menia v čase (kalendár je synchronizovaný s Booking.com).
+
+## Kontakt
+- Telefón: +421 911 151 414
+- E-mail: info@podhajska.net

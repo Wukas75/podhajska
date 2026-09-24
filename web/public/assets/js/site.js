@@ -36,6 +36,312 @@
     });
   }
 
+  /* ---- klikacie obrázky: <a data-img-link="kľúč"> + texts["kľúč.href"] ---- */
+  function applyImageLinks(texts) {
+    texts = texts || {};
+    $$('a[data-img-link]').forEach(function (a) {
+      var url = (texts[a.getAttribute('data-img-link') + '.href'] || '').trim();
+      if (url) {
+        a.setAttribute('href', url);
+        if (/^https?:\/\//i.test(url)) {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+        } else {
+          a.removeAttribute('target');
+          a.removeAttribute('rel');
+        }
+      } else {
+        a.removeAttribute('href');
+        a.removeAttribute('target');
+        a.removeAttribute('rel');
+      }
+    });
+  }
+
+  /* ---- kontaktné údaje / odkazy (telefón, e-mail, Facebook, tlačidlo rezervácie) ---- */
+  var contactDefaults = null;
+  function snapshotContactDefaults() {
+    if (contactDefaults) return;
+    contactDefaults = { phone: '', email: '', facebook: '', booking: '#dostupnost' };
+    var p = $('[data-contact="phone"]'); if (p) contactDefaults.phone = p.textContent.trim();
+    var e = $('[data-contact="email"]'); if (e) contactDefaults.email = e.textContent.trim();
+    var f = $('[data-contact="facebook"]'); if (f) contactDefaults.facebook = f.getAttribute('href') || '';
+    var b = $('[data-contact="booking"]'); if (b) contactDefaults.booking = b.getAttribute('href') || '#kontakt';
+  }
+  function telHref(v) { return 'tel:' + String(v).replace(/[^\d+]/g, ''); }
+  function applyContact(cfg) {
+    snapshotContactDefaults();
+    cfg = cfg || {};
+    var phone = (cfg.phone || '').trim() || contactDefaults.phone;
+    var email = (cfg.email || '').trim() || contactDefaults.email;
+    var facebook = (cfg.facebook || '').trim() || contactDefaults.facebook;
+    var booking = (cfg.bookingUrl || '').trim() || contactDefaults.booking;
+
+    $$('[data-contact="phone"]').forEach(function (el) {
+      el.textContent = phone;
+      var a = el.tagName === 'A' ? el : el.closest('a');
+      if (a && /^tel:/i.test(a.getAttribute('href') || '')) a.setAttribute('href', telHref(phone));
+    });
+    $$('[data-contact="email"]').forEach(function (el) {
+      el.textContent = email;
+      var a = el.tagName === 'A' ? el : el.closest('a');
+      if (a && /^mailto:/i.test(a.getAttribute('href') || '')) a.setAttribute('href', 'mailto:' + email);
+    });
+    $$('a[data-contact="email-link"]').forEach(function (a) {
+      var q = (a.getAttribute('href') || '').split('?')[1];
+      a.setAttribute('href', 'mailto:' + email + (q ? '?' + q : ''));
+    });
+    $$('a[data-contact="facebook"]').forEach(function (a) {
+      a.setAttribute('href', facebook);
+    });
+    $$('a[data-contact="booking"]').forEach(function (a) {
+      a.setAttribute('href', booking);
+      if (/^https?:\/\//i.test(booking)) {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      } else {
+        a.removeAttribute('target');
+        a.removeAttribute('rel');
+      }
+    });
+  }
+
+  /* ---- kalendár dostupnosti + dopytový formulár ---- */
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function toYmd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function addYmd(ymd, n) { var d = new Date(ymd + 'T00:00:00'); d.setDate(d.getDate() + n); return toYmd(d); }
+  var MONTHS_SK = ['Január', 'Február', 'Marec', 'Apríl', 'Máj', 'Jún', 'Júl', 'August', 'September', 'Október', 'November', 'December'];
+  var DOW_SK = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'];
+
+  var availState = { rooms: [], busy: [], y: 0, m: 0, today: '', note: '' };
+
+  // stav dňa pre izbu: 'occupied' (potvrdené) > 'reserved' (držaná rezervácia) > 'free'
+  function dayState(roomId, dayYmd) {
+    var st = 'free';
+    availState.busy.forEach(function (b) {
+      if (b.room_id === roomId && b.start_date <= dayYmd && dayYmd < b.end_date) {
+        if (b.status === 'confirmed') st = 'occupied';
+        else if (st !== 'occupied') st = 'reserved';
+      }
+    });
+    return st;
+  }
+  function rangeState(roomId, start, end) {
+    var st = 'free';
+    availState.busy.forEach(function (b) {
+      if (b.room_id === roomId && start < b.end_date && b.start_date < end) {
+        if (b.status === 'confirmed') st = 'occupied';
+        else if (st !== 'occupied') st = 'reserved';
+      }
+    });
+    return st;
+  }
+
+  function initAvailability() {
+    var root = document.getElementById('avail');
+    if (!root) return;
+    var now = new Date();
+    availState.today = toYmd(now);
+    if (!availState.y) { availState.y = now.getFullYear(); availState.m = now.getMonth(); }
+    var to = new Date(now.getFullYear(), now.getMonth() + 8, 1);
+    return fetch('/api/availability?from=' + availState.today + '&to=' + toYmd(to))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        availState.rooms = d.rooms || [];
+        availState.busy = d.busy || [];
+        renderAvail();
+      })
+      .catch(function () { root.innerHTML = '<p class="muted">Kalendár sa nepodarilo načítať.</p>'; });
+  }
+
+  function renderAvail() {
+    var root = document.getElementById('avail');
+    if (!root) return;
+    var y = availState.y, m = availState.m;
+    var first = new Date(y, m, 1);
+    var startDow = (first.getDay() + 6) % 7;         // 0 = pondelok
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+    var canPrev = !(y === new Date().getFullYear() && m <= new Date().getMonth());
+
+    var html = '' +
+      '<div class="avail__nav">' +
+      '<button type="button" class="avail__arrow" data-nav="-1"' + (canPrev ? '' : ' disabled') + ' aria-label="Predchádzajúci mesiac">‹</button>' +
+      '<strong>' + MONTHS_SK[m] + ' ' + y + '</strong>' +
+      '<button type="button" class="avail__arrow" data-nav="1" aria-label="Nasledujúci mesiac">›</button>' +
+      '</div>' +
+      '<div class="avail__grid avail__grid--dow">' + DOW_SK.map(function (x) { return '<span>' + x + '</span>'; }).join('') + '</div>' +
+      '<div class="avail__grid" id="avail-days">';
+
+    for (var i = 0; i < startDow; i++) html += '<span class="avail__day avail__day--out"></span>';
+    for (var day = 1; day <= daysInMonth; day++) {
+      var ds = y + '-' + pad2(m + 1) + '-' + pad2(day);
+      var past = ds < availState.today;
+      var states = availState.rooms.map(function (room) { return dayState(room.id, ds); });
+      var cells = availState.rooms.map(function (room, ri) {
+        var s = states[ri];
+        var lbl = s === 'occupied' ? ' – obsadené' : s === 'reserved' ? ' – rezervované' : ' – voľné';
+        return '<span class="avail__room' + (s !== 'free' ? ' is-' + s : '') + '" title="' + room.name + lbl + '">' + room.id + '</span>';
+      }).join('');
+      var allFull = states.every(function (s) { return s !== 'free'; });
+      html += '<button type="button" class="avail__day' + (past ? ' avail__day--past' : '') + (allFull ? ' is-full' : '') + '"' +
+        (past ? ' disabled' : ' data-day="' + ds + '"') + '>' +
+        '<span class="avail__daynum">' + day + '</span><span class="avail__rooms">' + cells + '</span></button>';
+    }
+    html += '</div>' +
+      '<div class="avail__legend">' +
+      '<span><i class="avail__sw"></i> voľné</span>' +
+      '<span><i class="avail__sw is-reserved"></i> rezervované</span>' +
+      '<span><i class="avail__sw is-occupied"></i> obsadené</span>' +
+      '<span class="muted">Čísla 1–3 = štúdiá. Kliknite na voľný deň a rezervujte.</span></div>' +
+      '<div id="avail-form"></div>';
+
+    if (availState.note) {
+      html = '<p class="inq__msg inq__msg--ok" style="margin:0 0 16px">' + availState.note + '</p>' + html;
+    }
+    root.innerHTML = html;
+    root.querySelectorAll('[data-nav]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var dir = +b.dataset.nav;
+        var nm = availState.m + dir;
+        availState.y += Math.floor(nm / 12);
+        availState.m = ((nm % 12) + 12) % 12;
+        renderAvail();
+      });
+    });
+    root.querySelectorAll('[data-day]').forEach(function (b) {
+      b.addEventListener('click', function () { openInquiry(b.dataset.day); });
+    });
+  }
+
+  function openInquiry(dayYmd) {
+    var box = document.getElementById('avail-form');
+    if (!box) return;
+    var rooms = availState.rooms;
+    var firstFree = rooms.find(function (r) { return rangeState(r.id, dayYmd, addYmd(dayYmd, 1)) === 'free'; }) || rooms[0];
+
+    box.innerHTML = '' +
+      '<form class="inq" novalidate>' +
+      '<h3>Rezervácia ubytovania</h3>' +
+      '<div class="inq__grid">' +
+      '<label>Príchod<input type="date" name="start" value="' + dayYmd + '" min="' + availState.today + '" required></label>' +
+      '<label>Odchod<input type="date" name="end" value="' + addYmd(dayYmd, 1) + '" min="' + addYmd(dayYmd, 1) + '" required></label>' +
+      '<label>Štúdio<select name="room">' + rooms.map(function (r) {
+        return '<option value="' + r.id + '"' + (r.id === (firstFree && firstFree.id) ? ' selected' : '') + '>' + r.name + '</option>';
+      }).join('') + '</select></label>' +
+      '<label>Meno a priezvisko<input type="text" name="name" required></label>' +
+      '<label>E-mail<input type="email" name="email" required></label>' +
+      '<label>Telefón<input type="tel" name="phone" required></label>' +
+      '</div>' +
+      '<label class="inq__full">Poznámka (počet osôb, otázky…)<textarea name="note" rows="2"></textarea></label>' +
+      '<p class="inq__hint" id="inq-hint"></p>' +
+      '<div class="inq__actions"><button type="submit" class="btn btn--primary">Rezervovať termín</button>' +
+      '<button type="button" class="btn btn--ghost" id="inq-cancel">Zrušiť</button></div>' +
+      '<p class="inq__msg" id="inq-msg" hidden></p>' +
+      '</form>';
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    var form = box.querySelector('form');
+    var hint = box.querySelector('#inq-hint');
+    var submitBtn = form.querySelector('button[type=submit]');
+    function check() {
+      var rid = +form.room.value, s = form.start.value, e = form.end.value;
+      if (!s || !e || e <= s) { hint.textContent = 'Zadajte platný termín (odchod po príchode).'; submitBtn.disabled = true; return; }
+      form.end.min = addYmd(s, 1);
+      var st = rangeState(rid, s, e);
+      if (st === 'occupied') { hint.textContent = '⚠ Tento termín je už obsadený. Vyberte iný.'; submitBtn.disabled = true; }
+      else if (st === 'reserved') { hint.textContent = '⚠ Tento termín je už predbežne rezervovaný. Vyberte iný.'; submitBtn.disabled = true; }
+      else { hint.textContent = ''; submitBtn.disabled = false; }
+    }
+    ['change', 'input'].forEach(function (ev) { form.addEventListener(ev, check); });
+    check();
+    box.querySelector('#inq-cancel').addEventListener('click', function () { box.innerHTML = ''; });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var msg = box.querySelector('#inq-msg');
+      var payload = {
+        room_id: +form.room.value, start_date: form.start.value, end_date: form.end.value,
+        name: form.name.value.trim(), email: form.email.value.trim(), phone: form.phone.value.trim(), note: form.note.value.trim()
+      };
+      if (!payload.name || !payload.email || !payload.phone) {
+        msg.hidden = false; msg.className = 'inq__msg inq__msg--warn'; msg.textContent = 'Vyplňte meno, e-mail aj telefón.';
+        return;
+      }
+      submitBtn.disabled = true; submitBtn.textContent = 'Odosielam…';
+      fetch('/api/inquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            submitBtn.disabled = false; submitBtn.textContent = 'Rezervovať termín';
+            msg.hidden = false; msg.className = 'inq__msg inq__msg--warn'; msg.textContent = res.b.error || 'Rezerváciu sa nepodarilo odoslať.';
+            return;
+          }
+          availState.note = 'Rezerváciu sme prijali. Termín je predbežne rezervovaný – ozveme sa vám s potvrdením.';
+          initAvailability(); // znovu načíta a prekreslí kalendár (nový termín bude „rezervované")
+        })
+        .catch(function () {
+          submitBtn.disabled = false; submitBtn.textContent = 'Rezervovať termín';
+          msg.hidden = false; msg.className = 'inq__msg inq__msg--warn'; msg.textContent = 'Chyba spojenia, skúste znova.';
+        });
+    });
+  }
+
+  /* ---- hero slider (fotky z theme_vars.heroImages) ---- */
+  var heroTimer = null;
+  function renderHero(themeVars) {
+    var hero = document.getElementById('domov');
+    if (!hero) return;
+    var v = themeVars || {};
+    var imgs = Array.isArray(v.heroImages) ? v.heroImages.filter(Boolean) : [];
+    if (!imgs.length && v.heroImage) imgs = [v.heroImage];
+    if (!imgs.length) return;
+
+    var slides = hero.querySelector('.hero__slides');
+    if (!slides) {
+      slides = document.createElement('div');
+      slides.className = 'hero__slides';
+      slides.setAttribute('aria-hidden', 'true');
+      hero.insertBefore(slides, hero.firstChild);
+    }
+    slides.innerHTML = '';
+    imgs.forEach(function (url, i) {
+      var s = document.createElement('div');
+      s.className = 'hero__slide' + (i === 0 ? ' is-active' : '');
+      s.style.backgroundImage = 'url("' + String(url).replace(/"/g, '%22') + '")';
+      slides.appendChild(s);
+    });
+
+    var oldDots = hero.querySelector('.hero__dots');
+    if (oldDots) oldDots.remove();
+    if (heroTimer) { clearInterval(heroTimer); heroTimer = null; }
+
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (imgs.length < 2 || reduce) return;
+
+    var dots = document.createElement('div');
+    dots.className = 'hero__dots';
+    var cur = 0;
+    function go(n) {
+      cur = (n + imgs.length) % imgs.length;
+      $$('.hero__slide', slides).forEach(function (el, i) { el.classList.toggle('is-active', i === cur); });
+      $$('button', dots).forEach(function (b, i) { b.classList.toggle('is-active', i === cur); });
+    }
+    function restart() {
+      if (heroTimer) clearInterval(heroTimer);
+      heroTimer = setInterval(function () { go(cur + 1); }, 6000);
+    }
+    imgs.forEach(function (_, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Fotka ' + (i + 1));
+      if (i === 0) b.className = 'is-active';
+      b.addEventListener('click', function () { go(i); restart(); });
+      dots.appendChild(b);
+    });
+    hero.appendChild(dots);
+    restart();
+  }
+
   /* ---- galéria + lightbox ---- */
   var allGallery = [];   // celý zoznam z API
   var gallery = [];      // aktuálne zobrazený (filtrovaný) zoznam – po ňom chodí lightbox
@@ -250,9 +556,13 @@
       window.PODtheme.ensureFont(data.theme_vars);
       window.PODtheme.applyCss(data.theme_css);
       applyTexts(data.texts);
+      applyImageLinks(data.texts);
+      applyContact(data.contact);
+      renderHero(data.theme_vars);
+      initAvailability();
       renderGallery(data.gallery);
       renderArticles(data.articles);
-      window.PODsite = { data: data, renderGallery: renderGallery, renderArticles: renderArticles, applyTexts: applyTexts };
+      window.PODsite = { data: data, renderGallery: renderGallery, renderArticles: renderArticles, applyTexts: applyTexts, applyImageLinks: applyImageLinks, applyContact: applyContact, renderHero: renderHero };
       if (location.hash.indexOf('#clanok/') === 0) openArticle(location.hash.slice(8));
       document.dispatchEvent(new CustomEvent('pod:site-ready', { detail: data }));
     })

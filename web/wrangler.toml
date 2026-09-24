@@ -7,15 +7,13 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "podhajska"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "889cbce5-100d-40ae-a1ce-0a05365d2b86"
 
 # R2 bucket na fotky nahraté adminom – `npx wrangler r2 bucket create podhajska-media`
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "podhajska-media"
 
-# Nezmyselné hodnoty len pre `wrangler pages dev`. V produkcii nastav cez
-# `npx wrangler pages secret put SESSION_SECRET` a `... SETUP_TOKEN`.
-[vars]
-SESSION_SECRET = "dev-only-change-me"
-SETUP_TOKEN = "dev-setup-token"
+# SESSION_SECRET a SETUP_TOKEN sú Pages secrets (`npx wrangler pages secret put …`).
+# Pre lokálny `wrangler pages dev` (dev:cf) ich daj do `.dev.vars` – viď .dev.vars.example.
+# V `[vars]` tu byť nesmú: kolidovali by s rovnomennými secretmi pri deployi.

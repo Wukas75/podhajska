@@ -25,6 +25,8 @@ get "$B/2024/10/IMG_7064-scaled.jpeg"                                           
 get "$B/2026/03/ChatGPT-Image-17.-3.-2026-14_46_02.jpg"                                      "wellness.jpg"
 get "$B/2019/07/classic_wellness_white.png"                                                  "wellness-logo.png"
 get "$B/2026/03/cropped-FCA38CE2-55CE-4F3A-86CE-49862354F148-1-2.jpg"                        "logo.jpg"
+# logo.png (priehľadné pozadie) je odvodený asset – regeneruj z logo.jpg:
+#   node scripts/make-logo.mjs
 
 # --- Fotogaléria: všetky fotky z podhajska.net/galeria/, poradie = kategórie ---
 # Štúdio 1,2,3
