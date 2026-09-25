@@ -86,7 +86,7 @@
       '.pod-list li input[type=text]{width:100%;border:1px solid #ddd;border-radius:5px;padding:5px 7px}',
       '.pod-field{margin-bottom:14px}',
       '.pod-field label{display:block;font:600 12px system-ui;text-transform:uppercase;letter-spacing:.08em;color:#666;margin-bottom:5px}',
-      '.pod-field input[type=text],.pod-field textarea,.pod-field select{width:100%;border:1px solid #ccc;border-radius:6px;padding:8px;font:14px system-ui}',
+      '.pod-field input[type=text],.pod-field input[type=password],.pod-field textarea,.pod-field select{width:100%;border:1px solid #ccc;border-radius:6px;padding:8px;font:14px system-ui}',
       '.wz{border:1px solid #ccc;border-radius:6px;overflow:hidden}',
       '.wz-bar{display:flex;flex-wrap:wrap;gap:2px;background:#f4f4f4;border-bottom:1px solid #ddd;padding:4px}',
       '.wz-btn{background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;cursor:pointer;font:12px system-ui}',
@@ -1014,6 +1014,48 @@
     });
   }
 
+  /* ---------- zmena hesla správcu ---------- */
+  function openPassword() {
+    var ui = modal('Zmeniť heslo');
+    var field = function (label, auto) {
+      var f = el('div', { class: 'pod-field' });
+      f.appendChild(el('label', { text: label }));
+      var i = el('input', { type: 'password', autocomplete: auto });
+      f.appendChild(i);
+      ui.body.appendChild(f);
+      return i;
+    };
+    var cur = field('Súčasné heslo', 'current-password');
+    var nw = field('Nové heslo (aspoň 8 znakov)', 'new-password');
+    var nw2 = field('Nové heslo znova', 'new-password');
+    var msg = el('p', { style: 'margin:0 0 12px;font:14px system-ui;color:#c00;min-height:1.2em' });
+    var btn = el('button', { class: 'pod-btn' }, 'Zmeniť heslo');
+    ui.body.appendChild(msg); ui.body.appendChild(btn);
+    var say = function (t, ok) { msg.style.color = ok ? '#0a7a3a' : '#c00'; msg.textContent = t; };
+
+    function submit() {
+      if (!cur.value || !nw.value || !nw2.value) return say('Vyplň všetky tri polia.');
+      if (nw.value.length < 8) return say('Nové heslo musí mať aspoň 8 znakov.');
+      if (nw.value !== nw2.value) return say('Nové heslá sa nezhodujú.');
+      if (nw.value === cur.value) return say('Nové heslo musí byť iné ako súčasné.');
+      btn.disabled = true; say('');
+      j(API + '/admin/password', { method: 'POST', body: JSON.stringify({ current: cur.value, next: nw.value }) })
+        .then(function (r) {
+          btn.disabled = false;
+          if (!r.ok) { say((r.body && r.body.error) || 'Heslo sa nepodarilo zmeniť.'); return; }
+          cur.value = nw.value = nw2.value = '';
+          say('Heslo je zmenené. Pri ďalšom prihlásení použi nové heslo.', true);
+          setTimeout(ui.close, 2500);
+        })
+        .catch(function () { btn.disabled = false; say('Chyba spojenia, skús znova.'); });
+    }
+    btn.addEventListener('click', submit);
+    [cur, nw, nw2].forEach(function (i) {
+      i.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+    });
+    cur.focus();
+  }
+
   /* ---------- FAB (tlačidlá vpravo dole) ---------- */
   function mountFab(state) {
     injectStyles();
@@ -1022,15 +1064,17 @@
     var arts = el('button', { title: 'Články' }, '<span class="lbl">Články</span>');
     var gal = el('button', { title: 'Galéria' }, '<span class="lbl">Foto</span>');
     var cal = el('button', { title: 'Kalendár obsadenosti' }, '<span class="lbl">Kalendár</span>');
+    var pwd = el('button', { title: 'Zmeniť heslo' }, '🔑');
     var out = el('button', { title: 'Odhlásiť sa' }, '⎋');
     gear.addEventListener('click', function () { openPanel(state); });
     arts.addEventListener('click', openArticles);
     gal.addEventListener('click', openGallery);
     cal.addEventListener('click', openCalendar);
+    pwd.addEventListener('click', openPassword);
     out.addEventListener('click', function () {
       j(API + '/auth/logout', { method: 'POST' }).then(function () { location.reload(); });
     });
-    fab.appendChild(gear); fab.appendChild(arts); fab.appendChild(gal); fab.appendChild(cal); fab.appendChild(out);
+    fab.appendChild(gear); fab.appendChild(arts); fab.appendChild(gal); fab.appendChild(cal); fab.appendChild(pwd); fab.appendChild(out);
     document.body.appendChild(fab);
   }
 
